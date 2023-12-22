@@ -50,7 +50,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install hexo
+          npm install -g hexo-cli
           npm install
 
       - name: Generate Blog
