@@ -54,6 +54,8 @@ jobs:
           mv -f _posts blog/source
           cp _config.yml blog/_config.yml
           cp -r snark blog/theme/
+          tree blog
+          cat blog/_config.yml
           
       - name: Checkout deploy repo
         uses: actions/checkout@v2
