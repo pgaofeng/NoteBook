@@ -1,19 +1,25 @@
-name: 自动部署
+name: Auto Deplay To GitPage
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
 env:
   GIT_USER: pgaofeng
   GIT_EMAIL: penggaofeng@163.com
   DEPLOY_REPO: pgaofeng/pgaofeng.github.io
   DEPLOY_BRANCH: main
+
 jobs:
-  build:
+  build-and-deplay:
     name: Build on node
     runs-on: ubuntu-latest
+    environment: production
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
