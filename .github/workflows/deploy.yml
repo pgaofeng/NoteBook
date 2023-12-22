@@ -7,8 +7,6 @@ on:
 env:
   GIT_USER: pgaofeng
   GIT_EMAIL: penggaofeng@163.com
-  DEPLOY_REPO: pgaofeng/pgaofeng.github.io
-  DEPLOY_BRANCH: main
 
 jobs:
   build-and-deplay:
@@ -50,17 +48,11 @@ jobs:
       - name: Generate Blog
         run: |
           hexo init blog
+          mv -f _posts/img blog/source/img
           rm -rf blog/source/_posts
           mv -f _posts blog/source
           cp _config.yml blog/_config.yml
           cp -r snark-theme blog/themes/
-          
-      - name: Checkout deploy repo
-        uses: actions/checkout@v2
-        with:
-          repository: ${{ env.DEPLOY_REPO }}
-          ref: ${{ env.DEPLOY_BRANCH }}
-          path: blog/.deploy_git
           
       - name: Deploy Blog
         run: |
@@ -68,6 +60,6 @@ jobs:
           npm install hexo-renderer-pug --save
           npm install hexo-renderer-sass --save
           npm install hexo-deployer-git --save
-          hexo clean
           hexo g
+          mv PAGE.md blog/public/README.md
           hexo d
