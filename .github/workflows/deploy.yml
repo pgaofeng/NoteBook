@@ -61,5 +61,5 @@ jobs:
           npm install hexo-renderer-sass --save
           npm install hexo-deployer-git --save
           hexo g
-          mv ../PAGE.md blog/public/README.md
+          mv ../PAGE.md public/README.md
           hexo d
