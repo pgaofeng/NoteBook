@@ -61,7 +61,7 @@ jobs:
           cp _config.yml blog/_config.yml
           cp -r snark blog/theme/
 
-      -name: Deploy Blog
+      - name: Deploy Blog
         run: |
           cd blog
           hexo clean
