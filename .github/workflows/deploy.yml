@@ -10,7 +10,6 @@ env:
   GIT_EMAIL: penggaofeng@163.com
   DEPLOY_REPO: pgaofeng/pgaofeng.github.io
   DEPLOY_BRANCH: main
-
 jobs:
   build:
     name: Build on node ${{ matrix.node_version }} and ${{ matrix.os }}
