@@ -1,0 +1,13 @@
+footer: p= '日期：' + date(Date.now(), 'YYYY-MM-DD') + ' | 本文作者：'
+  a(href=url_for('.'), rel='nofollow')= config.title
+  br
+  if theme.busuanzi
+    span#busuanzi_container_site_uv
+      i(class=theme.icons.visitor)
+      span#busuanzi_value_site_uv
+    |  
+    span#busuanzi_container_site_pv
+      i(class=theme.icons.view)
+      span#busuanzi_value_site_pv
+    |  | 
+  | 
