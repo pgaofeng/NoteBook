@@ -102,5 +102,5 @@ theme: snark
 ## Docs: https://hexo.io/docs/one-command-deployment
 deploy:
   type: git
-  repo: pgaofeng/pgaofeng.github.io
+  repo: https://github.com/pgaofeng/pgaofeng.github.io
   branch: main
