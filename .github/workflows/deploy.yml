@@ -24,13 +24,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Checkout deploy repo
-        uses: actions/checkout@v2
-        with:
-          repository: ${{ env.DEPLOY_REPO }}
-          ref: ${{ env.DEPLOY_BRANCH }}
-          path: .deploy_git
-
       - name: Use Node.js 
         uses: actions/setup-node@v1
         with:
@@ -61,7 +54,14 @@ jobs:
           mv -f _posts blog/source
           cp _config.yml blog/_config.yml
           cp -r snark blog/theme/
-
+          
+      - name: Checkout deploy repo
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ env.DEPLOY_REPO }}
+          ref: ${{ env.DEPLOY_BRANCH }}
+          path: blog/.deploy_git
+          
       - name: Deploy Blog
         run: |
           cd blog
