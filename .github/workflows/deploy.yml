@@ -67,6 +67,7 @@ jobs:
           cd blog
           npm install hexo-renderer-pug --save
           npm install hexo-renderer-sass --save
+          $ npm install hexo-deployer-git --save
           hexo clean
           hexo g
           hexo d
