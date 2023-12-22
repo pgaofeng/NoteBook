@@ -54,6 +54,7 @@ jobs:
           mv -f _posts blog/source
           cp _config.yml blog/_config.yml
           cp -r snark blog/themes/
+          tree blog
           
       - name: Checkout deploy repo
         uses: actions/checkout@v2
@@ -68,6 +69,6 @@ jobs:
           npm install hexo-renderer-pug --save
           npm install hexo-renderer-sass --save
           npm install hexo-deployer-git --save
+          hexo clean
           hexo g
-          cat ~/.ssh/id_rsa
           hexo d
