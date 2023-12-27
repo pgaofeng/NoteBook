@@ -1,4 +1,4 @@
-footer: p= '日期：' + date(Date.now(), 'YYYY-MM-DD') + ' | 本文作者：'
+footer: p= '最近更新：' + date(Date.now(), 'YYYY-MM-DD HH:mm:ss') + ' | 本文作者：'
   a(href=url_for('.'), rel='nofollow')= config.title
   br
   if theme.busuanzi

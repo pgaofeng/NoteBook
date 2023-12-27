@@ -48,9 +48,8 @@ jobs:
       - name: Generate Blog
         run: |
           hexo init blog
-          mv -f _posts/img blog/source/img
-          rm -rf blog/source/_posts
-          mv -f _posts blog/source
+          rm -rf blog/source
+          mv -f blog/source/_posts/img blog/source/img
           cp _config.yml blog/_config.yml
           cp -r snark-theme blog/themes/
           
@@ -61,5 +60,9 @@ jobs:
           npm install hexo-renderer-sass --save
           npm install hexo-deployer-git --save
           hexo g
+<<<<<<< HEAD
           mv ../PAGE.md public/README.md
+=======
+          mv ../website.md blog/public/README.md
+>>>>>>> b9e7b17 (修改文案)
           hexo d
