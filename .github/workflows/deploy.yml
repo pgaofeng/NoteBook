@@ -49,8 +49,8 @@ jobs:
         run: |
           hexo init blog
           rm -rf blog/source
-          mv -f source/_posts/img blog/source/img
           mv -f source blog/source
+          mv -f blog/source/_posts/img blog/source/img
           cp _config.yml blog/_config.yml
           cp -r snark-theme blog/themes/
           
