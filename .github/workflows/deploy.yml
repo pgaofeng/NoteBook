@@ -60,9 +60,5 @@ jobs:
           npm install hexo-renderer-sass --save
           npm install hexo-deployer-git --save
           hexo g
-<<<<<<< HEAD
-          mv ../PAGE.md public/README.md
-=======
           mv ../website.md blog/public/README.md
->>>>>>> b9e7b17 (修改文案)
           hexo d
