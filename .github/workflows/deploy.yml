@@ -57,8 +57,8 @@ jobs:
       - name: Generate Blog
         run: |
           hexo init blog
-          mv -f .dedeploy_git blog/.dedeploy_git
-          tree blog/.dedeploy_git
+          mv -f .deploy_git blog/.deploy_git
+          tree blog/.deploy_git
           rm -rf blog/source
           mv -f source blog/source
           mv -f blog/source/_posts/img blog/source/img
