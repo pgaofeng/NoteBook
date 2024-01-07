@@ -1,12 +1,15 @@
 # NoteBook
 
-## 目录说明
-```
+## 使用说明
 
-+-- _posts: 放置各种文章
-+  |
-+  +-- img: 放置文章引用的图片
-+  |
-+-- snark-theme  网页所应用的主题
-
-```
+1. 安装node.js
+2. npm install hexo-cli
+3. hexo init blog
+4. rm -rf blog/source
+5. mv source blog
+6. cd blog
+7. mv source/_post/img source
+8. npm install hexo-renderer-pug --save
+9. npm install hexo-renderer-sass --save
+10. hexo g
+11. hexo s
