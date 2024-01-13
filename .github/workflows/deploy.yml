@@ -70,6 +70,7 @@ jobs:
           npm install hexo-renderer-pug --save
           npm install hexo-renderer-sass --save
           npm install hexo-deployer-git --save
+          npm install hexo-simple-mindmap --save
           hexo g
           mv ../website.md public/README.md
           hexo d

@@ -11,5 +11,6 @@
 7. mv source/_post/img source
 8. npm install hexo-renderer-pug --save
 9. npm install hexo-renderer-sass --save
-10. hexo g
-11. hexo s
+10. npm install hexo-simple-mindmap --save
+11. hexo g
+12. hexo s
