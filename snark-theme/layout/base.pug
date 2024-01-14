@@ -21,7 +21,8 @@ html(lang='en')
             script.
                 hljs.configure({useBR: true});
                 
-
+        script(type='text/javascript', src=url_for(theme.plugins) + '/clipboard/clipboard.min.js', async)
+        script(type='text/javascript', src=url_for(theme.plugins) + '/clipboard/clipboard.use.js', async) 
         script(type='text/javascript', src=url_for(theme.js) + '/ready.js', async)
         if theme.fancybox
             link(rel='stylesheet', href='//cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css')
