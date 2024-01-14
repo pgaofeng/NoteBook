@@ -31,6 +31,8 @@ html(lang='en')
         script(type='text/javascript', src=url_for(theme.js) + '/ready.js', async)
         if theme.fancybox
             link(rel='stylesheet', href='//cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css')
+        if theme.mediumzoom
+            script(type='text/javascript', src="https://cdn.jsdelivr.net/npm/medium-zoom@latest/dist/medium-zoom.min.js")
 
     body.night
         #mobile-head.mobile-head
