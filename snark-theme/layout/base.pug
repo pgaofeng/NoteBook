@@ -14,8 +14,8 @@ html(lang='en')
                     prettyPrint(); 
                 });
         else if theme.highlight.highlight
-            link(rel='stylesheet', type='text/css', href=url_for(theme.plugins) + '/highlight/'+ __(theme.highlight.highlight_theme) +'.min.css')
-            script(type='text/javascript', src=url_for(theme.plugins) + '/highlight/highlight.min.js')
+            link(rel='stylesheet', type='text/css', href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/default.min.css')
+            script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js')
             script.
                 hljs.addPlugin({
                     "before:highlightBlock": ({ block }) => {
