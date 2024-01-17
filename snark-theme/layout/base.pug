@@ -14,7 +14,7 @@ html(lang='en')
                     prettyPrint(); 
                 });
         else if theme.highlight.highlight
-            link(rel='stylesheet', type='text/css', href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/default.min.css')
+            link(rel='stylesheet', type='text/css', href=url_for(theme.plugins) + '/highlight/'+ (theme.highlight.highlight_theme) +'.min.css')
             script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js')
             script.
                 hljs.addPlugin({
@@ -26,13 +26,13 @@ html(lang='en')
                     }
                 });
                 
-        script(type='text/javascript', src='https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js')
+        script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js')
         script(type='text/javascript', src=url_for(theme.plugins) + '/clipboard/clipboard.use.js', async) 
         script(type='text/javascript', src=url_for(theme.js) + '/ready.js', async)
         if theme.fancybox
             link(rel='stylesheet', href='//cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css')
         if theme.mediumzoom
-            script(type='text/javascript', src="https://cdn.jsdelivr.net/npm/medium-zoom@latest/dist/medium-zoom.min.js")
+            script(type='text/javascript', src="https://cdn.bootcdn.net/ajax/libs/medium-zoom/1.0.8/medium-zoom.min.js")
 
     body.night
         #mobile-head.mobile-head
