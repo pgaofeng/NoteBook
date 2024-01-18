@@ -2,18 +2,7 @@ doctype html
 html(lang='en')
     include _partial/head.pug
     block more
-        if theme.customize_css
-            link(rel='stylesheet', type='text/css', href=url_for(theme.css) + '/customize.css')
-        if theme.highlight.google_code_prettify
-            link(rel='stylesheet', type='text/css', href=url_for(theme.plugins) + '/prettify/doxy.css')
-            script(type='text/javascript', src=url_for(theme.plugins) + '/prettify/prettify.js')
-            script.
-                $(document).ready(function() {
-                    $("pre").addClass('prettyprint linenums').attr('style', 'overflow:auto;');
-                    $(".p-content code").addClass('prettyprint');
-                    prettyPrint(); 
-                });
-        else if theme.highlight.highlight
+        if theme.highlight.highlight
             link(rel='stylesheet', type='text/css', href=url_for(theme.plugins) + '/highlight/'+ (theme.highlight.highlight_theme) +'.min.css')
             script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js')
             script.
@@ -26,21 +15,45 @@ html(lang='en')
                     }
                 });
                 
-        script(type='text/javascript', src='https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js')
-        script(type='text/javascript', src=url_for(theme.plugins) + '/clipboard/clipboard.use.js', async) 
-        script(type='text/javascript', src=url_for(theme.js) + '/ready.js', async)
-        if theme.fancybox
-            link(rel='stylesheet', href='//cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css')
-        if theme.mediumzoom
-            script(type='text/javascript', src="https://cdn.bootcdn.net/ajax/libs/medium-zoom/1.0.8/medium-zoom.min.js")
-            script(type='text/javascript', src='https://apps.bdimg.com/libs/jquery-lazyload/1.9.5/jquery.lazyload.min.js')
-            script.
-                jQuery(document).ready(function($){
-                    $("img").lazyload({
-                        placeholder : "https://pic1.zhimg.com/70/v2-d856731e019f41a30e836f9a037524b6_1440w.avis?source=172ae18b&biz_tag=Post", //加载图片前的占位图片
-                        effect      : "fadeIn" //加载图片使用的效果(淡入)
-                    });
+        script.
+            $(document).ready(function() {
+                $(".m-nav a").hover(function() {
+                    $(this).prev().addClass("dot-hover")
+                }, function() {
+                    $(this).prev().removeClass("dot-hover")
+                })
+
+                $(".navbar-icon").click(function() {
+                    if((!$(".navbar-icon").hasClass("icon-click")) && (!$(".navbar-icon").hasClass("icon-out")))
+                        $(".navbar-icon").toggleClass("icon-click");
+                    else
+                        $(".navbar-icon").toggleClass("icon-click icon-out");
+                    $("#menu").toggleClass("h-wrapper mobile-menu");
+                    $("#container").toggleClass("translate");
                 });
+
+                $("#container").click(function() {
+                    if($(".navbar-icon").hasClass("icon-click")) {
+                        $(".navbar-icon").toggleClass("icon-click icon-out");
+                        $("#menu").toggleClass("h-wrapper mobile-menu");
+                        $("#container").toggleClass("translate");
+                    }
+                });
+                $(window).scroll(function() {
+                    var height = $(window).scrollTop();
+                    if (height > 300) {
+                        $('#back2Top').fadeIn(500);
+                    } else {
+                        $('#back2Top').fadeOut(500);
+                    }
+                });
+                $("#back2Top").click(function(event) {
+                    event.preventDefault();
+                    $("html, body").animate({ scrollTop: 0 }, "slow");
+                    return false;
+                });
+                mediumZoom(document.querySelectorAll('img'));
+            });
 
     body.night
         #mobile-head.mobile-head
