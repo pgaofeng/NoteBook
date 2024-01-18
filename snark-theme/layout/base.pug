@@ -33,6 +33,14 @@ html(lang='en')
             link(rel='stylesheet', href='//cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css')
         if theme.mediumzoom
             script(type='text/javascript', src="https://cdn.bootcdn.net/ajax/libs/medium-zoom/1.0.8/medium-zoom.min.js")
+            script(type='text/javascript', src='https://apps.bdimg.com/libs/jquery-lazyload/1.9.5/jquery.lazyload.min.js')
+            script.
+                jQuery(document).ready(function($){
+                    $("img").lazyload({
+                        placeholder : "https://pic1.zhimg.com/70/v2-d856731e019f41a30e836f9a037524b6_1440w.avis?source=172ae18b&biz_tag=Post", //加载图片前的占位图片
+                        effect      : "fadeIn" //加载图片使用的效果(淡入)
+                    });
+                });
 
     body.night
         #mobile-head.mobile-head
