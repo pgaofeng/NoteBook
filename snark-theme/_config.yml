@@ -25,7 +25,7 @@ busuanzi: false  ## If you want show counter of views, please set the value to t
 local_search: false
 customize_css: false  ## if enable customize_css, it will load file source/css/customize.scss
 fancybox: false  ## for image view
-mediumzoom: true
+mediumzoom: false
 copyright: true ## for CC BY-NC 4.0 license
 highlight: ## only choose one of below items
     google_code_prettify: false
