@@ -334,6 +334,12 @@ a,.m-nav a:hover,.l-post .p-desc a:hover,.ttl a:hover,.m-nav .dot,.l-pager a:hov
     padding-bottom: 0;
 }
 
+article.p-art {
+    img {
+        cursor:zoom-in;
+    }
+}
+
 .l-post .p-desc, article.p-art {
     position: relative;
     top: 0;
