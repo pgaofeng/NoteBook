@@ -1,0 +1,67 @@
+@import 'postlist.styl'
+
+// layout into two columns
+.columns, .nav-container
+  margin-left: auto
+  margin-right: auto
+  padding-left:22.5px
+  padding-right: 22.5px
+.columns
+  padding: 22.5px
+.left-column
+  .sticky-tablet > div
+    margin-bottom: 0.8rem
+.main-column
+  content-visibility: auto
+.right-column, .left-column
+  display: none
+
+@media screen and (min-width: 500px)
+  .columns, .nav-container
+    display: flex
+    width: 100%
+  .left-column, .right-column
+    display: none
+  .main-column
+    margin-left: 0px
+    margin-right: 0px
+    width: 100%
+
+
+@media screen and (min-width: 1038px)
+  .columns, .nav-container
+    display: flex
+    min-width: 1007px
+    width: 74.71%
+  .left-column
+    width: 30.32%
+    display: block
+  .main-column
+    width: 69.68%
+    margin-left: 22.5px
+    margin-right: 0px
+  .sticky-tablet
+    position: -webkit-sticky
+    position: sticky
+    top: 1.5rem
+  .left-column
+    .sticky-tablet > div
+      margin-bottom: 1.5rem
+
+// big screen layout, layout into three columns
+@media screen and (min-width: 1280px)
+  .columns, .nav-container
+    min-width: 1280px
+    width: 74.71%
+  .main-column
+    width: 56.92%
+    margin-left: 22.5px
+    margin-right: 22.5px
+  .left-column, .right-column
+    width: 21.54%
+    display: block
+  .sticky-widescreen
+    position: -webkit-sticky
+    position: sticky
+    top: 1.5rem
+

@@ -1,0 +1,13 @@
+<div class="recent-posts-card">
+  <div class="recent-posts-header">
+    <%- __('abortposts.title') %>
+  </div>
+  <div class="recent-posts-list">
+    <% site.posts.sort('date', -1).slice(0, Math.min(5, site.posts.length)).forEach((post,index) => { %>
+      <div class="recent-posts-item <%= index!=0?"recent-posts-item-other":"" %>">
+        <div class="recent-posts-item-title"><%= date(post.date) %></div>
+        <a href="<%= url_for(post.path) %>"><div class="recent-posts-item-content"><%= post.title %></div></a>
+      </div>
+    <% }) %>
+  </div>
+</div>

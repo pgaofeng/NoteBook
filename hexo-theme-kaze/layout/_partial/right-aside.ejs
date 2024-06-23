@@ -1,0 +1,18 @@
+<div class="sticky-widescreen">
+  <%# about post%>
+  <% if(is_post()) { %>
+    <article class="card card-content">
+      <%- partial('_partial/about-post') %>
+    </article>
+  <% } %>
+  <%# recent post %>
+  <article class="card card-content">
+    <%- partial('_partial/recent-post') %>
+  </article>
+  <%# archives card %>
+  <% if(!is_post()) { %>
+    <article class="card card-content">
+      <%- partial('_partial/archives') %>
+    </article>
+  <% } %>
+</div>

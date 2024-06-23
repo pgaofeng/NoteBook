@@ -1,0 +1,17 @@
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="navbar-menu">
+        <% for(const menu in theme.menus) { %>
+        <a 
+            href="<%= url_for(theme.menus[menu]) %>" 
+            class="navbar-menu-item">
+            <% if(__(menu + '.title') === menu + '.title') { %>
+            <%- menu %>
+            <% } else { %>
+            <%- __(menu + '.title') %>
+            <% } %>
+        </a>
+        <% } %>
+    </div>
+  </div>
+</nav>
