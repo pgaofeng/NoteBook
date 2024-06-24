@@ -8,7 +8,7 @@
       alt="<%= page.title %> thumbnail">
   </div>
 <% } %>
-<article class="card card-content">
+<article class="card card-content article-content">
   <header>
     <h1 class="post-title">
       <%= page.title %>
@@ -65,32 +65,26 @@
     class="post-content">
     <%- page.content %>
   </div>
-  <div>
+</article>
+<div>
     <% if(theme.copyright.enable) { %>
       <div 
-        class="post-note note-<%= theme.copyright.style || 'warning' %> copyright" 
-        style="margin-top: 42px">
+        class="post-note note-<%= theme.copyright.style || 'warning' %> copyright" >
         <p>
-          <span style="font-weight: bold;">作者：</span><a 
-            target="_blank" 
-            rel="nofollow noopener noreferrer" 
-            href="<%= url_for('/about') %>">
-            <%= theme.copyright.writer || theme.author || config.author %>
-          </a>
+          <div class='post-data'>本文最后更新于<span></span>天前，内容可能会与最新版本有所差异。</div>
+          <script>
+            window.onload = function() {
+              var today = new Date();
+              var postDay = new Date(<%=page.date%>);
+              var diff = Math.floor((today - postDay)/(1000 * 60 * 60 * 24));
+              console.log(diff + "天谴");
+              document.getElementById('diff-time').textContent = diff;
+            }
+          </script>
         </p>
-        <p>
-          <span style="font-weight: bold;">文章链接：</span><a 
-            target="_blank" 
-            rel="nofollow noopener noreferrer" 
-            href="<%= url_for(page.permalink) %>">
-            <%= page.permalink %>
-          </a>
-        </p>
-        <p><span style="font-weight: bold;">版权声明：</span><%- theme.copyright.declare %></p>
       </div>
     <% } %>
-  </div>
-</article>
+</div>
 <%- partial('_partial/pagination', { 
     prev_label: __('prev_post.title'), next_label:__('next_post.title'),
     prev_link: page.prev ? page.prev.path : '', next_link: page.next ? page.next.path : '',

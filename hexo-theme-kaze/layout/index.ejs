@@ -23,7 +23,7 @@
         <% if(post.excerpt) { %>
           <%= strip_html(post.excerpt) %>
         <% } else { %>
-          <%= strip_html(truncate( post.content, { length : 120 })) %>
+          <%= strip_html(truncate( post.content, { length : 360 })) %>
         <% } %>
       </div>
       <div class="card-post-footer">

@@ -6,10 +6,12 @@
   position: relative
   background-color: var(--widget-background-color)
   border-radius: 0.5rem 0.5rem 0 0
+  padding-bottom: 30%
   .image
     -o-object-fit: cover
     object-fit: cover
     width: 100%
+    height: 100%
     -webkit-filter: var(--image-filter-style)
     filter: var(--image-filter-style)
     position: absolute
@@ -29,13 +31,3 @@
   &:not(.loaded)
     -webkit-filter: blur(5px)
     filter: blur(5px)
-@media screen and (min-width: 768px)
-  .image-wrapper
-    padding-bottom: 300px
-    .image
-      height: 300px
-@media screen and (max-width: 767px)
-  .image-wrapper
-    height: 16.48rem
-    .image
-      height: 16.48rem
