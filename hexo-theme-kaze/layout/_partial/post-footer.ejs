@@ -1,0 +1,12 @@
+<div class='post-footer'>
+  <% if(page.categories && page.categories.data.length) { %>
+    <% page.categories.data.forEach(category => { %>
+      <a class='post-footer-category' href="<%= url_for(category.path) %>" >#&nbsp;<%=category.name%></a>
+    <% }) %>
+  <% } %>
+  <% if(page.tags && page.tags.data.length) { %>
+    <% page.tags.data.forEach(tag => { %>
+      <a class='post-footer-tag' href="<%= url_for(tag.path) %>" >#&nbsp;<%=tag.name%></a>
+    <% })%>
+  <% } %>
+</div>

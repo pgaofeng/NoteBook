@@ -71,20 +71,25 @@
       <div 
         class="post-note note-<%= theme.copyright.style || 'warning' %> copyright" >
         <p>
-          <div class='post-data'>本文最后更新于<span></span>天前，内容可能会与最新版本有所差异。</div>
+          <div class='post-data'>本文发布于<span id='post-time'></span>天前，最后更新于<span id='update-time'></span>天前，内容可能会与最新版本有所差异。</div>
           <script>
-            window.onload = function() {
+            document.addEventListener('DOMContentLoaded', function() {
               var today = new Date();
-              var postDay = new Date(<%=page.date%>);
-              var diff = Math.floor((today - postDay)/(1000 * 60 * 60 * 24));
-              console.log(diff + "天谴");
-              document.getElementById('diff-time').textContent = diff;
-            }
+              var postDay = new Date("<%=page.date%>");
+              var updateDay = new Date("<%=page.updated%>")
+              var diffPost = Math.floor((today - postDay)/(1000 * 60 * 60 * 24));
+              var diffUpdate = Math.floor((today - updateDay)/(1000 * 60 * 60 * 24));
+              document.getElementById('post-time').innerText = diffPost;
+              document.getElementById('update-time').innerText = diffUpdate;
+            });
           </script>
         </p>
       </div>
     <% } %>
 </div>
+
+<%- partial('_partial/post-footer') %>
+
 <%- partial('_partial/pagination', { 
     prev_label: __('prev_post.title'), next_label:__('next_post.title'),
     prev_link: page.prev ? page.prev.path : '', next_link: page.next ? page.next.path : '',

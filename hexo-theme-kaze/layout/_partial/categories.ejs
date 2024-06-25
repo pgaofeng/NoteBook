@@ -6,7 +6,7 @@
     <% for(const item of site.categories.data) { %>
       <a href="<%= url_for(item.path) %>">
         <div class="categories-list-item">
-          <%= item.slug %>
+          <%= item.name %>
           <span class="categories-list-item-badge"><%= item.posts.length %></span>
         </div>
       </a>
