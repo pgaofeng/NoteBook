@@ -5,8 +5,8 @@ function debounce(fun) {
         if(fun.id) {
             return
         }
+        fun()
         fun.id = setTimeout(function(){
-            fun()
             fun.id = undefined
         }, 300)
     }
@@ -14,6 +14,7 @@ function debounce(fun) {
 
 // 初始化滚动和高亮监听
 function setup() {
+    let firstLoad = true
     // 当前滚动的位置
     let currentIndex = 0
     // 目录的条目
@@ -30,27 +31,20 @@ function setup() {
     document.addEventListener('scroll', function() {
         debounce(onPageScroll)()
     })
+    onPageScroll()
     function onPageScroll() {
         // 计算当前应该显示那条标题
         let lastPosition = currentIndex
         computeShowTitle()
-        if(lastPosition != currentIndex ) {
+        if(lastPosition != currentIndex || firstLoad) {
             tocItems[lastPosition].classList.remove('active')
             tocItems[currentIndex].classList.add('active')
+            firstLoad = false
         }
-        // 滚动位置
-        let targetOffset = tocItems[currentIndex].getBoundingClientRect().top 
-        var a = tocContainer.height
-        console.log(a)
-        /*let computeOffset = 0
-        for(i = 0 ; i < currentIndex; i++) {
-            console.log("i = " + i + ", targetOffset = " + targetOffset + ", computeOffset = " + computeOffset)
-            if(computeOffset > targetOffset) {
-                break
-            }
-            computeOffset += titleItems[i].height
-        }
-        tocContainer.scrollTo({top: computeOffset, behavior: 'smooth'})*/
+        // 计算当前滚动的位置
+        let offsetRelative = tocItems[currentIndex].getBoundingClientRect().top - tocContainer.getBoundingClientRect().top
+        let targetOffset = offsetRelative - (tocContainer.clientHeight - tocItems[currentIndex].clientHeight) / 2
+        tocContainer.scrollTo({top: targetOffset, behavior: 'auto'})
         
     }
     // 计算当前应该显示那条标题
@@ -64,7 +58,10 @@ function setup() {
                 if(currentIndex == titleItems.length -1) {
                    return
                 }
-                let nextTop = titleItems[currentIndex + 1].getBoundingClientRect().top
+                let nextTop
+                if (currentIndex + 1 < titleItems.length) {
+                    nextTop = titleItems[currentIndex + 1].getBoundingClientRect().top
+                }
                 if(nextTop < slop) {
                     currentIndex ++
                 } else {
