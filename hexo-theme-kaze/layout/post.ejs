@@ -95,14 +95,6 @@
     prev_link: page.prev ? page.prev.path : '', next_link: page.next ? page.next.path : '',
     prev_title: page.prev ? page.prev.title : '', next_title: page.next ? page.next.title : ''
   }) %>
-<% if(theme.comment.enable && page.comment !== false) { %>
-  <div 
-    class="card card-content comment-card" 
-    style="margin-top: 16px;">
-    <div class="comment-card-title">评论</div>
-    <%- partial('_partial/plugins/comments/' + theme.comment.type) %>
-  </div>
-<% } %>
 <div 
   class="card card-content toc-card" 
   id="mobiletoc">

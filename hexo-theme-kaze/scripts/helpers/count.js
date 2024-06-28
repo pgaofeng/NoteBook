@@ -25,6 +25,12 @@ hexo.extend.helper.register('wordcount', function (content) {
   return Math.round(count / 100) / 10 + 'k';
 });
 
+hexo.extend.helper.register('wordcountOrigin', function (content) {
+  let len = counter(content);
+  let count = len[0] + len[1];
+  return count;
+});
+
 hexo.extend.helper.register('totalcount', function (site) {
   let count = 0;
   site.posts.forEach(function (post) {
