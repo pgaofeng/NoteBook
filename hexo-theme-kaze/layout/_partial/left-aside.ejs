@@ -12,8 +12,9 @@
     <%- partial('_partial/categories') %>
   </article>
   <%# tags card %>
-  <article class="card card-content tags-widget">
-    <%- partial('_partial/tags') %>
-  </article>
-  <%# display when is not in post %>
+  <% if(!is_post()){ %>
+    <article class="card card-content tags-widget">
+        <%- partial('_partial/tags') %>
+    </article>
+  <% } %>
 </div>

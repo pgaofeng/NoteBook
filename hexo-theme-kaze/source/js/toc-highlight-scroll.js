@@ -1,19 +1,4 @@
-
-// 防抖函数，300毫秒内只会执行一次fun函数
-function debounce(fun) {
-    return function() {
-        if(fun.id) {
-            return
-        }
-        fun()
-        fun.id = setTimeout(function(){
-            fun.id = undefined
-        }, 300)
-    }
-}
-
-// 初始化滚动和高亮监听
-function setup() {
+document.addEventListener('DOMContentLoaded', () => {
     let firstLoad = true
     // 当前滚动的位置
     let currentIndex = 0
@@ -24,15 +9,18 @@ function setup() {
     let lastYOffset = window.pageYOffset
     let tocContainer = document.querySelector('.toc')
     let mainContainer = document.querySelector('.main-column')
-    
+    let mLastTime = 0
     const slop = 50
     
     // 添加布局滚动的监听
-    document.addEventListener('scroll', function() {
-        debounce(onPageScroll)()
-    })
+    document.addEventListener('scroll', onPageScroll)
     onPageScroll()
     function onPageScroll() {
+        // 防抖
+        if(performance.now() - mLastTime < 300) {
+            return
+        }
+        mLastTime = performance.now()
         // 计算当前应该显示那条标题
         let lastPosition = currentIndex
         computeShowTitle()
@@ -42,7 +30,10 @@ function setup() {
             firstLoad = false
         }
         // 计算当前滚动的位置
-        let offsetRelative = tocItems[currentIndex].getBoundingClientRect().top - tocContainer.getBoundingClientRect().top
+        let offsetRelative = 0
+        for(i = 0; i < currentIndex; i++) {
+            offsetRelative += tocItems[currentIndex].clientHeight
+        }
         let targetOffset = offsetRelative - (tocContainer.clientHeight - tocItems[currentIndex].clientHeight) / 2
         tocContainer.scrollTo({top: targetOffset, behavior: 'auto'})
         
@@ -84,6 +75,4 @@ function setup() {
             } while(currentIndex > 0)
         }
     }
-};
-
-setup()
+});
