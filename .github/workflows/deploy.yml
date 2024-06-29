@@ -47,6 +47,7 @@ jobs:
           repository: ${{ env.GIT_DEPLOY_REPO }}
           ref: ${{ env.GIT_DEPLOY_BRANCH }}
           path: .deploy_git
+      - name: UpdatePostTime
         run: |
           cd .deployer-git
           sh update-date.sh
