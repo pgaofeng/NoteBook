@@ -49,6 +49,7 @@ jobs:
           path: .deploy_git
       - name: UpdatePostTime
         run: |
+          sudo timedatectl set-timezone "Asia/Shanghai"
           sh ./update_date.sh
 
       - name: Install dependencies
