@@ -49,7 +49,7 @@ jobs:
           path: .deploy_git
       - name: UpdatePostTime
         run: |
-          cd .deployer-git
+          cd .deployer_git
           sh update-date.sh
           cd ../
 
