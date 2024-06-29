@@ -4,7 +4,7 @@
 
 ## 主题说明
 
-该博客使用`hexo`搭建的静态博客内容，应用的主题为`hexo-theme-kaze`，并经过了一些改造。原始主题链接：[hexo-theme-kaze]( https://github.com/theme-kaze/hexo-theme-kaze )
+该博客使用`hexo`搭建的静态博客内容，应用的主题为`hexo-theme-kaze`，并经过了一些改造。原始主题链接：[hexo-theme-kaze](https://github.com/theme-kaze/hexo-theme-kaze)
 
 
 
@@ -17,7 +17,8 @@
 ## 目录说明
 
 ```
-D:.
+NoteBook
+├─.
 ├─.github
 │  
 ├─hexo-theme-kaze
@@ -50,14 +51,19 @@ D:.
    ```bash
    # 初始化博客目录
    hexo init blog
+   
    # 移除默认生成的hello world文章
    rm -rf blog/source
+   
    # 将自己的博客移动到对应的目录
    mv -f source blog/source
+   
    # 将图片移动到上一层，当前放在同一目录下是为了方便本地编写调试
    mv -f blog/source/_posts/img blog/source/img
+   
    # 覆盖博客的配置文件
    cp _config.yml blog/_config.yml
+   
    # 将主题移动到主题目录下
    cp -r hexo-theme-kaze blog/themes/
    ```
