@@ -51,7 +51,8 @@ jobs:
         run: |
           sh ./update_date.sh
           ls -al
-          git log -1
+          git status
+          git diff
 
       - name: Install dependencies
         run: |
