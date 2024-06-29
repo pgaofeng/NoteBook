@@ -19,6 +19,10 @@
   <title><%- page.title || theme.title %></title>
   <%- preload_css(url_for('css/main.css')) %>
   <%- ex_css(url_for('css/main.css')) %>
+  <% if(theme.cdn.hightlightcss) { %>
+    <%- preload_css(url_for(theme.cdn.hightlightcss)) %>
+    <%- ex_css(url_for(theme.cdn.hightlightcss)) %>
+  <% } %>  
   <script>
     function loadScript(url, cb) {
       var script = document.createElement('script');
@@ -27,11 +31,10 @@
       script.async = true;
       document.body.appendChild(script);
     }
-    function loadCSS(href, data, attr) {
+    function loadCSS(href) {
       var sheet = document.createElement('link');
       sheet.ref = 'stylesheet';
       sheet.href = href;
-      sheet.dataset[data] = attr;
       document.head.appendChild(sheet);
     }
     function changeCSS(cssFile, data, attr) {

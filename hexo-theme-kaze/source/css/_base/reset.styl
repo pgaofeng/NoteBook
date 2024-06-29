@@ -99,6 +99,7 @@ code[class*=language-]
   padding: 0
   border-radius: 0
   vertical-align: 0
+  font-family: ui-monospace,JetBrains Mono,SFMono-Regular,Menlo,Monaco,Consolas,Andale Mono,Liberation Mono,Ubuntu Mono,Courier New,monospace
 pre[class*=language-]
   border-radius: 0.3rem !important
 table
@@ -117,6 +118,22 @@ th
 tbody
   tr:nth-child(odd)
     background-color: var(--tbody-background-color)
+
+figure.highlight
+    font-family: ui-monospace,JetBrains Mono,SFMono-Regular,Menlo,Monaco,Consolas,Andale Mono,Liberation Mono,Ubuntu Mono,Courier New,monospace
+    background-color: var(--core-area-background-color)
+    border-radius: .5rem
+    tr
+      background-color:transparent
+    .code
+      border: none
+      line-height: 1.6
+    pre
+      padding: 0px
+    code
+      font-family: ui-monospace,JetBrains Mono,SFMono-Regular,Menlo,Monaco,Consolas,Andale Mono,Liberation Mono,Ubuntu Mono,Courier New,monospace
+
+
 pre
   overflow: auto
   overflow-wrap: normal

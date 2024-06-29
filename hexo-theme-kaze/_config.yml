@@ -53,8 +53,6 @@ color:
   widget-background-color: "#fff"
   body-background-color: "#f2f5f8"
   border-color: "#e1e4e9"
-  pre-color: "#2d2d2d"
-  code-color: "#50687c"
   code-background-color: "#e9eaf0"
 
 # 全局字体
@@ -66,3 +64,4 @@ cdn:
   lozad: /js/lib/lozad.min.js
   md5: /js/lib/md5.min.js
   toc: /js/lib/toc-highlight-scroll.min.js
+  hightlightcss: /css/libs/atom-one-light.min.css  # https://highlightjs.org/demo 下载样式
