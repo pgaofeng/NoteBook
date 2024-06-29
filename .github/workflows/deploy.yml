@@ -51,7 +51,7 @@ jobs:
         run: |
           sudo timedatectl set-timezone "Asia/Shanghai"
           sh ./update_date.sh
-          ls -al souce/_posts
+          ls -al source/_posts
           ls -al .deploy_git
 
       - name: Install dependencies
