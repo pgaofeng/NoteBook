@@ -50,7 +50,7 @@ jobs:
       - name: UpdatePostTime
         run: |
           cd .deploy_git
-          sh update-date.sh
+          sh ./update_date.sh
           cd ../
 
       - name: Install dependencies
