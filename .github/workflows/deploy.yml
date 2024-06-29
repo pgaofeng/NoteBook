@@ -62,13 +62,11 @@ jobs:
           mv -f source blog/source
           mv -f blog/source/_posts/img blog/source/img
           cp _config.yml blog/_config.yml
-          cp -r snark-theme blog/themes/
+          cp -r hexo-theme-kaze blog/themes/
           
       - name: Deploy Blog
         run: |
           cd blog
-          npm install hexo-renderer-pug --save
-          npm install hexo-renderer-sass --save
           npm install hexo-deployer-git --save
           npm install clean-css --save
           npm install uglify-js --save
