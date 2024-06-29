@@ -1,5 +1,4 @@
 ---
-update-data: 2023-12-27 19:50:15 +0800
 title: 好用的依赖注入框架-Hilt
 date: 2021-06-06 20:56:48
 categories: 

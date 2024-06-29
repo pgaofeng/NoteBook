@@ -74,11 +74,15 @@
           <div class='post-data'>本文发布于<span id='post-time'></span>天前，最后更新于<span id='update-time'></span>天前，内容可能会与最新版本有所差异。</div>
           <script>
             document.addEventListener('DOMContentLoaded', function() {
-              var today = new Date();
-              var postDay = new Date("<%=page.date%>");
-              var updateDay = new Date("<%=page.update_data%>")
-              var diffPost = Math.floor((today - postDay)/(1000 * 60 * 60 * 24));
-              var diffUpdate = Math.floor((today - updateDay)/(1000 * 60 * 60 * 24));
+              let today = new Date();
+              let postDay = new Date("<%=page.date%>");
+              let tmp = "<%=page.date%>"
+              if("<%=page.update_data%>") {
+                tmp = "<%=page.update_data%>"
+              }
+              let updateDay = new Date(tmp)
+              let diffPost = Math.floor((today - postDay)/(1000 * 60 * 60 * 24));
+              let diffUpdate = Math.floor((today - updateDay)/(1000 * 60 * 60 * 24));
               document.getElementById('post-time').innerText = diffPost;
               document.getElementById('update-time').innerText = diffUpdate;
             });

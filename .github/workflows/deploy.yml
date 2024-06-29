@@ -50,9 +50,6 @@ jobs:
       - name: UpdatePostTime
         run: |
           sh ./update_date.sh
-          ls -al
-          git status
-          git diff
 
       - name: Install dependencies
         run: |
