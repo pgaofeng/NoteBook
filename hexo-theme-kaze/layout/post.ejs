@@ -76,7 +76,7 @@
             document.addEventListener('DOMContentLoaded', function() {
               var today = new Date();
               var postDay = new Date("<%=page.date%>");
-              var updateDay = new Date("<%=page.updated%>")
+              var updateDay = new Date("<%=page.update_data%>")
               var diffPost = Math.floor((today - postDay)/(1000 * 60 * 60 * 24));
               var diffUpdate = Math.floor((today - updateDay)/(1000 * 60 * 60 * 24));
               document.getElementById('post-time').innerText = diffPost;

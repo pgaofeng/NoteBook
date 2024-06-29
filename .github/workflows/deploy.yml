@@ -47,6 +47,10 @@ jobs:
           repository: ${{ env.GIT_DEPLOY_REPO }}
           ref: ${{ env.GIT_DEPLOY_BRANCH }}
           path: .deploy_git
+        run: |
+          cd .deployer-git
+          sh update-date.sh
+          cd ../
 
       - name: Install dependencies
         run: |
