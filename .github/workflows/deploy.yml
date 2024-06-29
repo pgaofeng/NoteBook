@@ -49,9 +49,7 @@ jobs:
           path: .deploy_git
       - name: UpdatePostTime
         run: |
-          cd .deploy_git
           sh ./update_date.sh
-          cd ../
 
       - name: Install dependencies
         run: |
