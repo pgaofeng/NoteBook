@@ -9,6 +9,7 @@ env:
   GIT_EMAIL: penggaofeng@163.com
   GIT_DEPLOY_REPO: pgaofeng/pgaofeng.github.io
   GIT_DEPLOY_BRANCH: main
+  GIT_HOST_REPO: pgaofeng/NoteBook
 
 jobs:
   build-and-deplay:
@@ -41,16 +42,25 @@ jobs:
           git config --global user.name $GIT_USER
           git config --global user.email $GIT_EMAIL
 
-      - name: Checkout deploy repo
+      - name: Checkout pgaofeng.github.io
         uses: actions/checkout@v2
         with:
           repository: ${{ env.GIT_DEPLOY_REPO }}
           ref: ${{ env.GIT_DEPLOY_BRANCH }}
           path: .deploy_git
+
+      - name: Checkout NoteBook HOST
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ env.GIT_HOST_REPO }}
+          ref: ${{ env.GIT_DEPLOY_BRANCH }}
+          path: .notebook
       - name: UpdatePostTime
         run: |
+          cd .notebook
           sh ./update_date.sh
-          git log -5
+          cd ..
+          mv cp -r .notebook/source/_posts source
 
       - name: Install dependencies
         run: |
