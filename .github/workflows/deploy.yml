@@ -50,7 +50,7 @@ jobs:
       - name: UpdatePostTime
         run: |
           sh ./update_date.sh
-          git diff
+          git log -5
 
       - name: Install dependencies
         run: |
