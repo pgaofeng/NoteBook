@@ -60,7 +60,7 @@ jobs:
           cd .notebook
           sh ./update_date.sh
           cd ..
-          mv cp -r .notebook/source/_posts source
+          cp -r .notebook/source/_posts source
 
       - name: Install dependencies
         run: |
