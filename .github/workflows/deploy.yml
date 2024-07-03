@@ -58,6 +58,7 @@ jobs:
       - name: UpdatePostTime
         run: |
           cd .notebook
+          git log -5
           sh ./update_date.sh
           cd ..
           cp -r .notebook/source/_posts source
