@@ -1,5 +1,4 @@
 ---
-update-data: 2023-12-27 19:50:15 +0800
 title: 在Android中使用Bsdiff实现增量更新
 date: 2021-09-06 21:07:51
 categories: 
