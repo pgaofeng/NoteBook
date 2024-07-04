@@ -54,7 +54,6 @@ jobs:
           cd .notebook
           git clone https://github.com/pgaofeng/NoteBook.git
           cd NoteBook
-          git log -5
           sh ./update_date.sh
           cd ../../
           cp -r .notebook/NoteBook/source/_posts source

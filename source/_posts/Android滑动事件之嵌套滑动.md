@@ -1,11 +1,10 @@
 ---
 title: Android滑动事件之嵌套滑动
 date: 2021-11-22 10:30:58
-categories: 
-  - Android
-  - NestedScroll
+categories: Android View
 tags: 
-  - View
+  - 嵌套滑动
+  - 滑动事件
 ---
 
 ![cover-nested.webp](img/cover-nestedscroll.webp)

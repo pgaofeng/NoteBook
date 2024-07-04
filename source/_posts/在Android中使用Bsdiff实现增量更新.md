@@ -1,10 +1,10 @@
 ---
 title: 在Android中使用Bsdiff实现增量更新
 date: 2021-09-06 21:07:51
-categories: 
-  - Android
+categories: 三方库\依赖
 tags: 
-  - 三方库
+  - 增量更新
+  - bsdiff
 ---
 
 ![img](/img/cover-bsdiff.webp)

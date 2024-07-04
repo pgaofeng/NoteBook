@@ -1,11 +1,10 @@
 ---
 title: CoordinatorLayout的秘密之Behavior
 date: 2021-11-02 21:54:58
-categories: 
-  - Android
-  - Behavior
+categories: Android View
 tags: 
-  - View
+  - Behavior
+  - 嵌套滑动
 ---
 
 ![cover-behavior.webp](img/cover-behavior.webp)

@@ -3,7 +3,40 @@
     <%- __('abortposts.title') %>
   </div>
   <div class="recent-posts-list">
-    <% site.posts.sort('date', -1).slice(0, Math.min(5, site.posts.length)).forEach((post,index) => { %>
+  <% let aboutseries = []%>
+
+  <% site.posts.sort('date', -1).forEach((item)=> { %>
+  <%   if(item.title != page.title) {%>
+  <%      if(item.series == page.series && item.series != undefined ) {%>
+  <%        aboutseries.push(item) %>
+  <%      } %>
+  <%    } %>
+  <% }) %>
+  <% if(aboutseries.length < 5) { %>
+  <%   page.tags.data.forEach(tagItem => { %>
+  <%     site.posts.sort('date', -1).forEach((item)=> { %>
+  <%       if(item.title != page.title) {%>
+  <%          if(item.tags.data.map(t=>t.name).includes(tagItem.name) && !aboutseries.includes(item) ) {%>
+  <%            aboutseries.push(item) %>
+  <%          } %>
+  <%       } %>
+  <%     }) %>
+  <%   })%>
+  <% } %>
+  
+  <% if(aboutseries.length < 5) { %>
+  <%   page.categories.data.forEach(categoryItem => { %>
+  <%     site.posts.sort('date', -1).forEach((item)=> { %>
+  <%       if(item.title != page.title) {%>
+  <%          if(item.categories.data.map(c=>c.name).includes(categoryItem.name) && !aboutseries.includes(item) ) {%>
+  <%            aboutseries.push(item) %>
+  <%          } %>
+  <%       } %>
+  <%     }) %>
+  <%   })%>
+  <% } %>  
+  
+    <% aboutseries.slice(0, Math.min(5, site.posts.length)).forEach((post,index) => { %>
       <div class="recent-posts-item <%= index!=0?"recent-posts-item-other":"" %>">
         <div class="recent-posts-item-title"><%= date(post.date) %></div>
         <a href="<%= url_for(post.path) %>"><div class="recent-posts-item-content"><%= post.title %></div></a>

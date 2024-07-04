@@ -1,12 +1,9 @@
 ---
 title: 好用的依赖注入框架-Hilt
 date: 2021-06-06 20:56:48
-categories: 
-  - Android
-  - Hilt
+categories: 三方库\依赖
 tags: 
   - Jetpack
-  - 三方库
 ---
 
 ![img](/img/cover-hilt.webp)
