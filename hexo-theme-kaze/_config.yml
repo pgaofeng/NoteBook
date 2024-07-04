@@ -27,7 +27,7 @@ copyright:
 # 配置资源延迟加载
 lazyload:
   enable: true
-  loadingImg:
+  loadingImg: <svg xmlns='http://www.w3.org/2000/svg' width='800' height='240'><rect x='0' y='0' width='800' height='240' fill='#fafafa'/><text x='50%' y='50%' style='dominant-baseline:middle;text-anchor:middle;font-size:53px' fill='#b7b7b7'>图片加载中</text></svg>
 
 # 字数统计
 wordcount:
