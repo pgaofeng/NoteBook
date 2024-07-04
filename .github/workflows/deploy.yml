@@ -48,20 +48,16 @@ jobs:
           repository: ${{ env.GIT_DEPLOY_REPO }}
           ref: ${{ env.GIT_DEPLOY_BRANCH }}
           path: .deploy_git
-
-      - name: Checkout NoteBook HOST
-        uses: actions/checkout@v2
-        with:
-          repository: ${{ env.GIT_HOST_REPO }}
-          ref: ${{ env.GIT_DEPLOY_BRANCH }}
-          path: .notebook
       - name: UpdatePostTime
         run: |
+          mkdir .notebook
           cd .notebook
+          git clone https://github.com/pgaofeng/NoteBook.git
+          cd NoteBook
           git log -5
           sh ./update_date.sh
-          cd ..
-          cp -r .notebook/source/_posts source
+          cd ../../
+          cp -r .notebook/NoteBook/source/_posts source
 
       - name: Install dependencies
         run: |

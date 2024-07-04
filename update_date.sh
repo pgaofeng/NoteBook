@@ -7,7 +7,7 @@ find "$directory" -type f -name "*.md" -exec bash -c '
     filename="$1"
     # 替换成当前文件的最近的git更新时间
     new_timestamp=$(git log -1 --format="%ai" -- $filename)
-    echo "NewTime = $new_timestamp" 
+    git log -1 --format="%ai" -- $filename
     
     # 尝试替换update_data:后面的时间  
     sed -i "/update_data:/s/\(update_data: \).*/\1$new_timestamp/" "$filename"  
