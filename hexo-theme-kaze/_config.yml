@@ -27,8 +27,9 @@ copyright:
 # 配置资源延迟加载
 lazyload:
   enable: true
-  loadingImg: <svg xmlns='http://www.w3.org/2000/svg' width='800' height='240'><rect x='0' y='0' width='800' height='240' fill='#fafafa'/><text x='50%' y='50%' style='dominant-baseline:middle;text-anchor:middle;font-size:53px' fill='#b7b7b7'>图片加载中</text></svg>
-
+  loadingImg: data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc4MDAnIGhlaWdodD0nMjQwJz48cmVjdCB4PScwJyB5PScwJyB3aWR0aD0nODAwJyBoZWlnaHQ9JzI0MCcgZmlsbD0nI2ZhZmFmYScvPjx0ZXh0IHg9JzUwJScgeT0nNTAlJyBzdHlsZT0nZG9taW5hbnQtYmFzZWxpbmU6bWlkZGxlO3RleHQtYW5jaG9yOm1pZGRsZTtmb250LXNpemU6NTNweCcgZmlsbD0nI2I3YjdiNyc+5Zu+54mH5Yqg6L295LitPC90ZXh0Pjwvc3ZnPg==
+  
+  
 # 字数统计
 wordcount:
   enable: true
