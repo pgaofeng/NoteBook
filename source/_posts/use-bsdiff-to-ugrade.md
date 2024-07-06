@@ -5,9 +5,8 @@ categories: 三方库\依赖
 tags: 
   - 增量更新
   - bsdiff
+banner_img: img/cover/cover-bsdiff.webp
 ---
-
-![img](/img/cover-bsdiff.webp)
 
 在`Android`中，我们应用内更新软件通常是下载完整的安装包，然后进行安装。但是当安装包很大的时候，每次更新都会让用户不爽，因为不仅会消耗很多流量，而且当用户网络不是很好的时候，更新就会很慢，而且会影响到用户体验，比如下载期间占用带宽导致加载图片缓慢等。因此，用户很可能会拒绝更新。
 

@@ -5,9 +5,8 @@ categories: Android View
 tags: 
   - Behavior
   - 嵌套滑动
+banner_img: img/cover/cover-behavior.webp
 ---
-
-![cover-behavior.webp](img/cover-behavior.webp)
 
 在源码的注释的第一行中有这样一句话：`CoordinatorLayout is a super-powered FrameLayout.` 也就是什么都不做的话，是可以将他当做一个简单的`FrameLayout`来使用的，当然实际上我们肯定不会这样去使用的。从名字可以看到，`CoordinatorLayout`是一个协调布局、协作布局。即作为一个控制者，处理子View之间的交互关系。
 

@@ -4,9 +4,8 @@ date: 2021-06-06 20:56:48
 categories: 三方库\依赖
 tags: 
   - Jetpack
+banner_img: img/cover/cover-hilt.webp
 ---
-
-![img](/img/cover-hilt.webp)
 
 ### 为什么使用依赖注入
 

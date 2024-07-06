@@ -4,11 +4,8 @@ date: 2021-08-05 22:00:55
 categories: 三方库\依赖
 tags: 
   - Jetpack
+banner_img: img/cover/cover-room.webp
 ---
-
-![img](/img/cover-room.webp)
-
-
 
 ## Room简介
 

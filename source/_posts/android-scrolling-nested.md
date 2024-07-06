@@ -5,9 +5,8 @@ categories: Android View
 tags: 
   - 嵌套滑动
   - 滑动事件
+banner_img: img/cover/cover-nested.webp
 ---
-
-![cover-nested.webp](img/cover-nestedscroll.webp)
 
 在`Android`中，事件是以一组事件作为一个整体的，即`down->move->..->up/cancel`，在其一开始的设计中，是没有考虑嵌套滑动的处理的，当认定了某一个`View`选择拦截处理事件的话，这一组事件都会交给该控件去处理。
 
