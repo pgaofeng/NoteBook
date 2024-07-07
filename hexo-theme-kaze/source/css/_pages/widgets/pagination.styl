@@ -33,3 +33,27 @@
   font-weight: 500
   line-height: 1.2rem
   color: var(--text-color)
+
+.nav
+  span
+    align-self: center
+.nav-item-normal, .nav-item-current
+  border-radius: .5rem
+  padding-left: 13.25px
+  padding-right: 13.25px
+  padding-top: 7.5px
+  padding-bottom: 7.5px
+  background-color: var(--widget-background-color)
+  box-shadow: var(--around-shadow-style)
+  margin-left: 3.75px
+  margin-right: 3.75px
+  a
+    padding: 0px
+.nav-item-normal .nav-label
+  &:hover
+    color: var(--link-color)
+.nav-item-current
+  background-color: var(--code-color)
+  cursor: default 
+  .nav-label
+    color: $tbody-background-color

@@ -1,32 +1,118 @@
 <div class="nav">
-  <% if(page.prev) { %>
-    <div class="nav-item-prev">
-      <a 
-        href="<%= url_for(prev_link) %>" 
-        class="nav-link">
-        <i class="iconfont icon-left nav-prev-icon"></i>
-        <div>
-          <div class="nav-label"><%= prev_label %></div>
-          <% if(prev_title) { %>
-            <div class="nav-title"><%= prev_title %> </div>
-          <% } %>
-        </div>
-      </a>
-    </div>
-  <% } %>
-  <% if(page.next) { %>
-    <div class="nav-item-next">
-      <a 
-        href="<%= url_for(next_link) %>" 
-        class="nav-link">
-        <div>
-          <div class="nav-label"><%= next_label %></div>
-          <% if(next_title) { %>
-            <div class="nav-title"><%= next_title %> </div>
-          <% } %>
-        </div>
-        <i class="iconfont icon-right nav-next-icon"></i>
-      </a>
-    </div>
-  <% } %>
+  <div class="nav-item-prev">
+<%  if(page.prev) { %>
+        <a 
+          href="<%= url_for(prev_link) %>" 
+          <%if(prev_title) {%>
+            class="nav-link">
+          <%} else {%>
+            class="nav-link nav-item-normal">
+          <%}%>
+          <div>
+            <div class="nav-label"><%= prev_label %></div>
+            <% if(prev_title) { %>
+              <div class="nav-title"><%= prev_title %> </div>
+            <% } %>
+          </div>
+        </a>
+<%  } %>
+  </div>
+
+
+<% function replaceLastPartOfPath(oldUrl, newValue) {  %> 
+<%    let partsUrl = oldUrl.split('/');  %>
+<%    if (partsUrl.length === 0) {  %>
+<%        return oldUrl; %>  
+<%    }  %>
+<%    partsUrl[partsUrl.length - 2] = newValue; %>  
+<%    return partsUrl.join('/');%>
+<% }   %>
+
+<%if(page.total && page.total > 2) { %>
+<%  if(page.current > 2 && page.current < 5) { %>
+        <a 
+          href="<%=url_for(page.base)%>" 
+          class="nav-link nav-item-normal">
+          <div>
+            <div class="nav-label">1</div>
+          </div>
+        </a>
+<%    for(i = 2; i < page.current - 1; i++) { %>
+          <a 
+            href="<%=url_for(replaceLastPartOfPath(page.current_url, i))%>" 
+            class="nav-link nav-item-normal">
+            <div>
+              <div class="nav-label"><%=i%></div>
+            </div>
+          </a>
+<%    } %>
+<%  } else if(page.current >= 5) { %>
+         <a 
+          href="<%=url_for(page.base)%>" 
+          class="nav-link nav-item-normal">
+          <div>
+            <div class="nav-label">1</div>
+          </div>
+         </a>
+      <span>···</span>
+<%  } %>
+
+<%  if(page.current != 1) { %>
+        <a 
+          href="<%= url_for(prev_link) %>" 
+          class="nav-link nav-item-normal">
+          <div>
+            <div class="nav-label"><%=page.prev%></div>
+          </div>
+        </a>
+<%  } %>
+
+        <a 
+          class="nav-link nav-item-current">
+          <div>
+            <div class="nav-label"><%=page.current%></div>
+          </div>
+        </a>
+
+<%  if(page.current != page.total) { %>
+        <a 
+          href="<%= url_for(next_link)%>" 
+          class="nav-link nav-item-normal">
+          <div>
+            <div class="nav-label"><%=page.next%></div>
+          </div>
+        </a>
+<%  } %>
+
+<%  if(page.current < page.total -2) {%>
+      <span>···</span>
+<%  }%>
+<%  if(page.current < page.total -1) {%>
+        <a 
+          href="<%=url_for(replaceLastPartOfPath(page.current_url, page.total))%>" 
+          class="nav-link nav-item-normal">
+          <div>
+            <div class="nav-label"><%=page.total%></div>
+          </div>
+        </a>
+<%  }%>
+<%} %>
+  <div class="nav-item-next">
+    <% if(page.next) { %>
+        <a 
+          href="<%= url_for(next_link) %>" 
+          <% if(next_title){ %>
+            class="nav-link">
+          <%} else {%>
+            class="nav-link  nav-item-normal">
+          <%}%>
+          <div>
+            <div class="nav-label"><%= next_label %></div>
+            <% if(next_title) { %>
+              <div class="nav-title"><%= next_title %> </div>
+            <% } %>
+          </div>
+        </a>
+    <% } %>
+  </div>
 </div>
