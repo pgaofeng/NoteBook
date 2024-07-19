@@ -3,7 +3,7 @@
  * @deprecated
  */
 'use strict';
-const UglifyJS = require('uglify-es');
+const UglifyJS = require('uglify-js');
 module.exports = hexo => {
   hexo.extend.filter.register('after_render:js', function(str){
     const res = UglifyJS.minify(str);
