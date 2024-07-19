@@ -66,3 +66,4 @@ cdn:
   md5: /js/lib/md5.min.js
   toc: /js/lib/toc-highlight-scroll.min.js
   hightlightcss: /css/libs/atom-one-light.min.css  # https://highlightjs.org/demo 下载样式
+  clipboard: /js/lib/clipboard.min.js

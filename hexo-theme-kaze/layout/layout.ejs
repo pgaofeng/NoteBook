@@ -29,6 +29,23 @@
     <%# javascript %>  
     <% if(theme.lazyload.enable) { %>
       <script>
+        let initCount = 0;
+        function initClipboard() {
+          initCount++
+          if(initCount < 2) {
+            return
+          }
+          let board = new ClipboardJS('.btn-copy')
+          board.on('success', function(e) {
+            e.clearSelection()
+            e.trigger.innerHTML= icon_yes
+            setTimeout(()=>{
+              e.trigger.innerHTML = icon_copy
+            }, 1000)
+          })
+        }
+      
+      
         var addLazyload = function () {
           var observer = lozad('.lozad', {
             load: function (el) {
@@ -45,7 +62,10 @@
         loadScript('<%= url_for(theme.cdn.lozad) %>', addLazyload)
       </script>
       <script>
-        loadScript('<%= url_for(theme.cdn.toc) %>', () => tocSetup())
+        loadScript('<%= url_for(theme.cdn.toc) %>', () => {tocSetup();addCopyButton();initClipboard()})
+      </script>
+      <script>
+        loadScript('<%= url_for(theme.cdn.clipboard)%>', () => initClipboard())
       </script>
     <% } %>
   </body>
