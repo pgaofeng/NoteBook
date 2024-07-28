@@ -1,7 +1,7 @@
 ---
 title: 好用的依赖注入框架-Hilt
 date: 2021-06-06 20:56:48
-categories: 三方库\依赖
+categories: Third Libiaries
 tags: 
   - Jetpack
 banner_img: img/cover/cover-hilt.webp
@@ -756,5 +756,4 @@ public final class MyViewModel_HiltModules {
 -   <不使用注解> 默认的Factory只能创建**空参构造方法**的`ViewModel`。
 
 -   <使用注解>   Hilt的Factory可以创建**带参数构造方法**的`ViewModel`，当然参数必须也是可以进行注入的。
-
 
