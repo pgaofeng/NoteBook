@@ -135,9 +135,40 @@ call.enqueue(object : Callback{
 
 
 
- ## Interceotor
+ ## Interceptor
 
-拦截器
+OkHttp的整体网络请求是使用的责任链模式实现的，主体是五大拦截器，逐渐细化对网络请求参数的拆解、封装、压缩、传输等。在此基础上，也允许我们添加自定义的拦截器去参与到网络请求的过程中。如前面引入的`HttpLoggingInterceptor`就是一个用于打印请求参数和结果的拦截器。
 
+```kotlin
+private val mOkHttpClient = OkHttpClient.Builder()
+    .addInterceptor(HttpLoggingInterceptor().also {
+        it.level = HttpLoggingInterceptor.Level.BODY
+    })
+    .build()
+```
 
+拦截器主要是在`OkHttpClient`构建的时候添加进去的，我们在正常使用的时候，传入自定义的`Interceptor`参数，然后在`intercept`方法中去处理自己的逻辑。如我们想在每次请求前和请求后打印出`HEAD`信息 ：
+
+```kotlin
+private val mOkHttpClient = OkHttpClient.Builder()
+    .addInterceptor { chain ->
+        // 网络请求前
+        val request = chain.request()
+        Log.d(TAG, "before network: ${request.headers}")
+        // 交给下一个拦截器处理，最终会实际请求
+        val response = chain.proceed(request)
+        //网络请求之后
+        Log.d(TAG, "after network: ${response.headers}")
+        response
+    }
+    .build()
+```
+
+## 总结
+
+网络请求无非是建立连接，发送请求，处理响应三个步骤。对于我们使用来说，只需要关注发送请求和处理响应即可。发送请求主要是构建`Request`，通过`Request`的构建时调用的不同方法去选择使用什么方式进行请求，以及参数的传入、`HEAD`的添加等。而像`Cookie`的添加，则是在构建`OkHttpClient`的时候传入的`CookieJar`来管理`Cookie`。每次请求的时候，都会根据`url`从`CookieJar`中取出对应的`Cookie`写入到请求头中，然后在收到响应后将响应头中的`Cookie`存储到`CookieJar`。
+
+响应则更简单，主要是从`Response`中取出数据。可以从`Response`中获取到状态码来判断网络请求是否成功，最主要的是获取`body`信息，这是一次网络请求的主体，通常是使用`Json`格式的数据，然后我们将其序列化成对象进行使用即可，其余皆不需要关注。
+
+由于`OkHttp`良好的封装和设计模式的应用，使得我们在使用的时候异常简单，几乎不需要什么学习成本即可完成网络请求。这么好的库不学习一番太过浪费了，后面将对`OkHttp`的源码进行分析，剖析它的设计之美。
 
