@@ -1,10 +1,10 @@
 ---
-title: OkHttp3的简单使用
+title: OkHttp3整体源码分析
 date: 2021-02-20 17:43:21
 tags:
  - OkHttp
 categories: Third Libraries
-banner_img: img/cover/cover-okhttp.webp
+banner_img: img/cover/cover-okhttp-2.webp
 series: okhttp3
 ---
 
@@ -401,3 +401,78 @@ object ConnectInterceptor : Interceptor {
 
 ### CallServerInterceptor
 
+`CallServerInterceptor`属于最后一个拦截器，它的主要职责真正的写入数据内容。首先向连接中写入请求头，然后是写入请求体，写入完成后从连接中读取响应头和响应体。
+
+```kotlin
+@Throws(IOException::class)
+  override fun intercept(chain: Interceptor.Chain): Response {
+    ...
+    try {
+      // 写入header
+      exchange.writeRequestHeaders(request)
+
+      if (HttpMethod.permitsRequestBody(request.method) && requestBody != null) {
+        ...
+        if (responseBuilder == null) {
+          // 写入body
+          if (requestBody.isDuplex()) {
+            exchange.flushRequest()
+            val bufferedRequestBody = exchange.createRequestBody(request, true).buffer()
+            requestBody.writeTo(bufferedRequestBody)
+          } else {
+            val bufferedRequestBody = exchange.createRequestBody(request, false).buffer()
+            requestBody.writeTo(bufferedRequestBody)
+            bufferedRequestBody.close()
+          }
+        } else {
+          exchange.noRequestBody()
+        }
+      } else {
+        exchange.noRequestBody()
+      }
+
+      if (requestBody == null || !requestBody.isDuplex()) {
+        exchange.finishRequest()
+      }
+    } catch (e: IOException) {
+      ...
+    }
+
+    try {
+      if (responseBuilder == null) {
+        // 读取响应header
+        responseBuilder = exchange.readResponseHeaders(expectContinue = false)!!
+        ...
+      }
+      // 构建请求响应体
+      var response = responseBuilder
+          .request(request)
+          .handshake(exchange.connection.handshake())
+          .sentRequestAtMillis(sentRequestMillis)
+          .receivedResponseAtMillis(System.currentTimeMillis())
+          .build()
+      var code = response.code
+      ...
+      exchange.responseHeadersEnd(response)
+
+      response = if (forWebSocket && code == 101) {
+        response.newBuilder()
+            .body(EMPTY_RESPONSE)
+            .build()
+      } else {
+        // 请求体
+        response.newBuilder()
+            .body(exchange.openResponseBody(response))
+            .build()
+      }
+      ...
+      return response
+    } catch (e: IOException) {
+      ...
+    }
+  }
+```
+
+## 总结
+
+通过上面的学习，可以看到OkHttp整体是采用的责任链的模式，以多个拦截器为链节点，将一个HTTP请求逐步分解，最终发送给服务端。同时也提供给我们两个拦截器节点用于添加自定义的拦截器，一个是通用拦截器，一个是网络拦截器，使得我们可以通过它去自定义各种功能。
