@@ -10,6 +10,8 @@ banner_img: img/cover/cover-flow.webp
 
 `Flow`字如其名，是一个数据流操作，他是基于`Kotlin`协程实现的异步数据流，方便我们对数据进行处理或者进行数据交换。简单点来说，就是`flow`提供了一组操作方法，通过链式调用来依次对数据进行操作修改，也可以在别的地方对`flow`设置观察者(`collect`)，当数据流处理完毕后，数据会被发送给观察者进行消费。
 
+![](img/flow.webp)
+
 ## 生成数据流
 
 若要操作数据流，最先做的应该是生成一个数据流。`Flow<out T>`是一个接口，它的泛型类就是流中的数据，Flow给我们提供了很多的创建流的方式。
@@ -68,7 +70,7 @@ val flow2 = emptyFlow<Int>()
 
 ## 收集数据流
 
-当我们拿到一个flow后，我们需要从flow中获取数据，而flow也给我们提供了很多的操作符进行快速获取。需要注意的是，数据的获取方法都必须在协程作用域内执行。当我们的协程作用域被取消后，flow也会被直接取消掉。
+当我们拿到一个flow后，我们需要从flow中获取数据，而flow也给我们提供了很多的操作符进行快速获取。需要注意的是，数据的获取方法都必须在协程作用域内执行，当我们的协程作用域被取消后，flow也会被直接取消掉。
 
 ![](img/flow-terminate.webp)
 
@@ -119,4 +121,63 @@ pre collect = 4
 collect = 4
 ```
 
-可以看到，创建的`flow`会连续发射多个数据，然后每个数据会处理10ms然后输出，但是通过`collectLatest`操作符去获取数据时，每次的数据处理都会被取消掉，只有最后一个数据才会被完整的处理完。我们可以利用这种操作符的特性，在实际的开发中用作防抖。
+可以看到，创建的`flow`会连续发射多个数据，然后每个数据会处理10ms然后输出，但是通过`collectLatest`操作符去获取数据时，每次的数据处理都会被取消掉，只有最后一个数据才会被完整的处理完。我们可以利用这种操作符的特性，在实际的开发中可以用作防抖。
+
+### reduce
+
+`reduce`操作符用于将flow中的数据进行合并，最终返回一个结果值。
+
+```kotlin
+val flow = flowOf(1,2,3,4,5,6)
+lifecycleScope.launch {
+    val result = flow.reduce { accumulator, value ->
+        Log.d(TAG, "accumulator = $accumulator, value = $value")
+        value + accumulator
+    }
+    Log.d(TAG, "result = $result")
+}
+// 输出如下
+accumulator = 1, value = 2
+accumulator = 3, value = 3
+accumulator = 6, value = 4
+accumulator = 10, value = 5
+accumulator = 15, value = 6
+result = 21
+```
+
+### fold
+
+`fold`操作符和`reduce`都是用于将flow中的数据进行合并的，不同的是`reduce`从名字看是将结果进行减少的，它实际操作时是将flow的每两个数据合并成一个数据，即初始值是flow的第一个值，同时合并后的值必须是flow的数据类型的子类或本身。
+
+而`fold`并没有限制合并后的数据类型，同时fold也会提供一个初始值用于进行合并操作。
+
+```kotlin
+val flow = flowOf(1,2,3,4,5,6)
+lifecycleScope.launch {
+    val result = flow.map("0") { accumulator, value ->
+        Log.d(TAG, "accumulator = $accumulator, value = $value")
+        value + accumulator
+    }
+    Log.d(TAG, "result = $result")
+}
+// 输出如下
+accumulator = 0, value = 1
+accumulator = 01, value = 2
+accumulator = 012, value = 3
+accumulator = 0123, value = 4
+accumulator = 01234, value = 5
+accumulator = 012345, value = 6
+result = 0123456
+```
+
+### single、singleOrNull
+
+使用`single`操作符要求flow有且只能有一个数据，如果有多个数据的话会直接抛出异常，如果没有数据的话也会抛出异常，因此没数据时需要使用`singleOrNull`。
+
+### first、firstOrNull、last、lastOrNull
+
+`first`返回flow中数据的第一个，如果没有数据的话会报异常，因此无数据时需要使用`firstOrNull`。`last`返回flow中的最后一个数据，如果没有数据的话会抛出异常，因此无数据时需要使用`lastOrNull`。
+
+## 转换数据流
+
+![](img/flow-map.webp)
