@@ -11,7 +11,7 @@ banner_img: img/cover/cover-epoll.webp
 
 ## 简单介绍
 
-整套消息机制我们应该非常熟悉了，具体的使用就不再赘述，这里只简单介绍下各个组件的作用。
+整套消息机制我们应该非常熟悉了，具体的使用就不再赘述，这里只简单介绍下各个组件的作用。本文基于Android 13源码。
 
 ### Handler
 
@@ -31,7 +31,7 @@ banner_img: img/cover/cover-epoll.webp
 
 消息队列`MessageQueue`，主要作用是存储消息，各个`Handler`发送的消息都会进入消息队列，并且按照消息的执行时间进行排序，时间靠前的排在前面。当`Looper`获取消息时，从前向后读取消息，如果消息的执行时间在当前时间之后，就会阻塞一直到执行时间后恢复。
 
-## 原理分析
+## Java层源码
 
 我们知道`Handler`是可以跨线程进行交互的，那么如何跨线程呢？首先线程间的数据本身就是可以共享的，我们可以在某个线程中定义一个数据结构，然后在另一个线程中向这个数据结构中写入数据，这样两个线程就可以交换数据了。生产者消费者模式就是这个原理，而`Handler`消息机制，本质上也是这个原理。
 
@@ -354,113 +354,222 @@ private static boolean loopOnce(final Looper me,
 
 ```java
 Message next() {
-  // native的指针，用于阻塞和唤醒的
-  final long ptr = mPtr;
-  if (ptr == 0) {
-      return null;
-  }
+    // native的指针，用于阻塞和唤醒的
+    final long ptr = mPtr;
+    if (ptr == 0) {
+        return null;
+    }
+    // idleHandler的个数，用来控制避免重复执行的
+    int pendingIdleHandlerCount = -1;
 
-  int pendingIdleHandlerCount = -1; // -1 only during first iteration
-    
-  // 阻塞时间，当没有消息时取值为-1，表示一直阻塞；有消息时但是不能执行，说明该消息的
-  // 执行时间是在未来的，因此取值为msg.when - now
-  int nextPollTimeoutMillis = 0;
-    
-  // 这里也是一个死循环，说明如果取不到数据，是会继续循环去取，直到取到message为止，
-  // 因此说这个方法的返回值不会为null，除非Looper被quit才会返回null。
-  for (;;) {
-    // 阻塞一段时间nextPollTimeoutMillis，第一次的时候该值为0不会被阻塞，
-    // 后续就可能会被阻塞住，直到第一个消息的执行时间点到达
-    nativePollOnce(ptr, nextPollTimeoutMillis);
+    // 阻塞时间，当没有消息时取值为-1，表示一直阻塞；有消息时但是不能执行，说明该消息的
+    // 执行时间是在未来的，因此取值为msg.when - now
+    int nextPollTimeoutMillis = 0;
 
-    synchronized (this) {
-      final long now = SystemClock.uptimeMillis();
-      Message prevMsg = null;
-      Message msg = mMessages;
-      // target为空，说明msg是一个消息屏障
-      if (msg != null && msg.target == null) { 
-          // 遇到消息屏障后，该屏障后的所有普通消息不再执行，但是异步消息还是会执行的，
-          // 因此这里使用循环查找消息屏障后的第一个异步消息返回
-          do {
-              prevMsg = msg;
-              msg = msg.next;
-           } while (msg != null && !msg.isAsynchronous());
-       }
-       if (msg != null) {
-           // 找到了消息，注意msg的初始值是mMessage，也就是消息队列的第一个值，因此
-           // 走到这里说明拿到了一个可能是正常消息，也可能是异步消息的消息
-            if (now < msg.when) {
-                // 消息的执行时间未到，则计算需要阻塞的时间
-                nextPollTimeoutMillis = (int) Math.min(msg.when - now, Integer.MAX_VALUE);
-            } else {
-                // 找到了消息并且可以执行，标记为非阻塞状态
-                mBlocked = false;
-                // 将消息从消息队列中取出来
-                if (prevMsg != null) {
-                    prevMsg.next = msg.next;
+    // 这里也是一个死循环，说明如果取不到数据，是会继续循环去取，直到取到message为止，
+    // 因此说这个方法的返回值不会为null，除非Looper被quit才会返回null。
+    for (; ; ) {
+        // 阻塞一段时间nextPollTimeoutMillis，第一次的时候该值为0不会被阻塞，
+        // 后续就可能会被阻塞住，直到第一个消息的执行时间点到达
+        nativePollOnce(ptr, nextPollTimeoutMillis);
+
+        synchronized (this) {
+            final long now = SystemClock.uptimeMillis();
+            Message prevMsg = null;
+            Message msg = mMessages;
+            // target为空，说明msg是一个消息屏障
+            if (msg != null && msg.target == null) {
+                // 遇到消息屏障后，该屏障后的所有普通消息不再执行，但是异步消息还是会执行的，
+                // 因此这里使用循环查找消息屏障后的第一个异步消息返回
+                do {
+                    prevMsg = msg;
+                    msg = msg.next;
+                } while (msg != null && !msg.isAsynchronous());
+            }
+            if (msg != null) {
+                // 找到了消息，注意msg的初始值是mMessage，也就是消息队列的第一个值，因此
+                // 走到这里说明拿到了一个可能是正常消息，也可能是异步消息的消息
+                if (now < msg.when) {
+                    // 消息的执行时间未到，则计算需要阻塞的时间
+                    nextPollTimeoutMillis = (int) Math.min(msg.when - now, Integer.MAX_VALUE);
                 } else {
-                    mMessages = msg.next;
-                }
-                msg.next = null;
-                msg.markInUse();
-                return msg;
-            }
-        } else {
-            // 未找到消息，则将阻塞时间设置为一直阻塞
-            nextPollTimeoutMillis = -1;
-        }
-        // 只有Looper.quit时，才会返回null
-        if (mQuitting) {
-              dispose();
-              return null;
-        }
-
-                // If first time idle, then get the number of idlers to run.
-                // Idle handles only run if the queue is empty or if the first message
-                // in the queue (possibly a barrier) is due to be handled in the future.
-                if (pendingIdleHandlerCount < 0
-                        && (mMessages == null || now < mMessages.when)) {
-                    pendingIdleHandlerCount = mIdleHandlers.size();
-                }
-                if (pendingIdleHandlerCount <= 0) {
-                    // No idle handlers to run.  Loop and wait some more.
-                    mBlocked = true;
-                    continue;
-                }
-
-                if (mPendingIdleHandlers == null) {
-                    mPendingIdleHandlers = new IdleHandler[Math.max(pendingIdleHandlerCount, 4)];
-                }
-                mPendingIdleHandlers = mIdleHandlers.toArray(mPendingIdleHandlers);
-            }
-
-            // Run the idle handlers.
-            // We only ever reach this code block during the first iteration.
-            for (int i = 0; i < pendingIdleHandlerCount; i++) {
-                final IdleHandler idler = mPendingIdleHandlers[i];
-                mPendingIdleHandlers[i] = null; // release the reference to the handler
-
-                boolean keep = false;
-                try {
-                    keep = idler.queueIdle();
-                } catch (Throwable t) {
-                    Log.wtf(TAG, "IdleHandler threw exception", t);
-                }
-
-                if (!keep) {
-                    synchronized (this) {
-                        mIdleHandlers.remove(idler);
+                    // 找到了消息并且可以执行，标记为非阻塞状态
+                    mBlocked = false;
+                    // 将消息从消息队列中取出来
+                    if (prevMsg != null) {
+                        prevMsg.next = msg.next;
+                    } else {
+                        mMessages = msg.next;
                     }
+                    msg.next = null;
+                    msg.markInUse();
+                    return msg;
+                }
+            } else {
+                // 未找到消息，则将阻塞时间设置为一直阻塞
+                nextPollTimeoutMillis = -1;
+            }
+            // 只有Looper.quit时，才会返回null
+            if (mQuitting) {
+                dispose();
+                return null;
+            }
+            ...
+        }
+
+        // 执行pendingIntent
+        for (int i = 0; i < pendingIdleHandlerCount; i++) {
+            final IdleHandler idler = mPendingIdleHandlers[i];
+            mPendingIdleHandlers[i] = null; // release the reference to the handler
+            boolean keep = false;
+            try {
+                keep = idler.queueIdle();
+            } catch (Throwable t) {
+                Log.wtf(TAG, "IdleHandler threw exception", t);
+            }
+            if (!keep) {
+                synchronized (this) {
+                    mIdleHandlers.remove(idler);
                 }
             }
+        }
+        ...
+    }
+}
+```
 
-            // Reset the idle handler count to 0 so we do not run them again.
-            pendingIdleHandlerCount = 0;
+上面的逻辑比较长，详细的注释也在其中了。这里有一段逻辑是当`Message`的`target`为空时，后面只会去取`isAsynchronous`的异步消息，这里这种`target`为空的消息被称为消息屏障，它的作用就是屏蔽它之后的消息，但是无法屏蔽异步消息。整体逻辑就是：取第一个`Message`，如果是消息屏障的话，继续找它后面的异步消息，反正就是找到最近的一个消息，然后消息不能执行的话就阻塞，否则就返回。
 
-            // While calling an idle handler, a new message could have been delivered
-            // so go back and look again for a pending message without waiting.
-            nextPollTimeoutMillis = 0;
+最后还有一个`IdleHandler`，它是空闲消息，当消息队列处于空闲状态时才会执行。空闲状态是指：消息队列中没有消息、消息队列中有消息但是未到执行时间、消息队列中有消息但是被消息屏障给屏蔽了并且没有可执行的异步消息。注意这里的`next`方法中取消息的逻辑是一个死循环：先取消息，没有可执行的消息时会计算需要阻塞的时长，然后再去执行`IdleHandler`消息；然后再到循环时，会再次找消息并计算阻塞时长，然后受`pendingIdleHandlerCount`参数的影响这次不会再执行`IdleHandler`了；然后再次循环进去阻塞状态。之所以这样循环，是因为`IdleHandler`也是执行在`Looper`线程的，考虑到它的执行可能会消耗时间，因此需要在它执行之后重新计算阻塞时长。
+
+接下来再看看`Handler`是如何执行消息的，即`msg.target,.dispatchMessage`
+
+```java
+public void dispatchMessage(@NonNull Message msg) {
+    // 如果callback不为空，说明消息是个可执行代码块，直接执行即可
+    if (msg.callback != null) {
+        handleCallback(msg);
+    } else {
+        // 可以给Handler设置一个处理消息的callback，如果执行消息的话，就不会再去分发了
+        if (mCallback != null) {
+            if (mCallback.handleMessage(msg)) {
+                return;
+            }
+        }
+        // 最后的执行消息的地方，是个空方法
+        handleMessage(msg);
+    }
+}
+
+private static void handleCallback(Message message) {
+    message.callback.run();
+}
+```
+
+普通消息会被分为数据消息和代码块消息，代码块的消息会被直接执行掉，从而实现了跨线程，因为代码块是在其他线程发送的，但是执行时却是在`Looper`的线程执行的。而数据消息则是由用户自己去处理，使用示例如下：
+
+```java
+// 使用方式一，构造Handler时传入Callback进行处理消息
+private Handler mHandler = new Handler(Looper.getMainLooper(), new Handler.Callback() {
+    @Override
+    public boolean handleMessage(@NonNull Message msg) {
+        boolean consumed = false;
+        switch (msg.what) {
+            case 1:
+                consumed = true;
+                break;
+            default:
+                break;
+        }       
+        return consumed;
+    }
+});
+
+// 使用方式二，使用匿名内部类，重写handlerMessage方法来处理消息
+private Handler mHandler2 = new Handler(Looper.getMainLooper()) {
+    @Override
+    public void handleMessage(@NonNull Message msg) {
+        switch (msg.what) {
+            case 1:
+                consumed = true;
+                break;
+            default:
+                break;
         }
     }
+};
 ```
+
+当然，如果不发送数据消息的话，直接使用`new Handler(Looper)`即可。
+
+### 小结
+
+在Handler消息机制中，绑定了`Looper`的`Handler`可以在任意的线程中向`MessageQueue`中发送消息，`Looper`负责循环驱动来读取消息，并在自己的线程内处理消息。其中消息分为三类：
+
+- 普通消息：普通消息又根据`msg.isAsynchronous`分为异步消息和同步消息，他们之间的差异就是异步消息不会被消息屏障给屏蔽掉。不管是同步消息还是异步消息，他们又根据`msg.callback`分为代码块消息和数据消息，如果`callback`不为空说明是代码块消息，会直接执行。数据消息则是由用户自己进行处理，可根据`what`来区分消息。
+- 消息屏障：`msg.target`为空就代表它是一个消息屏障，它的作用就是屏蔽它后面的消息。一般用来保证重要消息的执行，如`View`在绘制时就会发送一个消息屏障屏蔽掉其他消息，以保障绘制的顺利完成。
+- 空闲消息：`IdleHandler`并不是一个`Message`，他在`MessageQueue`中也是单独用一个集合存储的。它只会在消息队列空闲的时候执行，时机无法控制，因此适合处理一些不重要的东西。
+
+## Native层源码
+
+前面说到的是Java层的整个机制的源码，可以看到在阻塞和唤醒的地方都是调用的native的方法：
+
+```java
+MessageQueue(boolean quitAllowed) {
+    mQuitAllowed = quitAllowed;
+    mPtr = nativeInit();
+}
+
+Message next() {
+    ...
+    for (;;) {
+        nativePollOnce(ptr, nextPollTimeoutMillis);
+        ...
+    }
+}
+
+boolean enqueueMessage(Message msg, long when) {
+    ...
+    synchronized (this) {
+        ...
+        if (needWake) {
+            nativeWake(mPtr);
+        }
+    }
+    return true;
+}
+
+
+private native static long nativeInit();
+private native static void nativeDestroy(long ptr);
+@UnsupportedAppUsage
+private native void nativePollOnce(long ptr, int timeoutMillis); /*non-static for callbacks*/
+private native static void nativeWake(long ptr);
+```
+
+可以看到，这一系列的方法都是`native`方法，源码实现都是在`JNI`中，并且他们不是通过`System.load`加载的，而是在`native`层动态加载的，基本上所有的系统`JNI`都是在`AndroidRuntime`（`frameworks/base/core/jni/AndroidRuntime.cpp`）中动态加载的。我们正常找对应的`JNI`文件的时候，可以直接全局搜文件名，文件名的规则就是包名+类名，如`MessageQueue`对应的`JNI`文件就是`android_os_MessageQueue.cpp`（`frameworks/base/core/jni/android_os_MessageQueue.cpp`）。
+
+找到了对应的文件，那么我们直接看`nativeInit`方法，它是在构造`MessageQueue`的时候调用的，返回值是一个`long`类型的值。
+
+```c++
+static jlong android_os_MessageQueue_nativeInit(JNIEnv* env, jclass clazz) {
+    NativeMessageQueue* nativeMessageQueue = new NativeMessageQueue();
+      if (!nativeMessageQueue) {
+         jniThrowRuntimeException(env, "Unable to allocate native queue");
+         return 0;
+      }
+    // 增加强引用，避免被销毁
+    nativeMessageQueue->incStrong(env);
+    // 返回地址指针
+    return reinterpret_cast<jlong>(nativeMessageQueue);
+}
+```
+
+即创建了一个`NativeMessageQueue`，然后增强了它的强引用，避免被销毁，然后返回了地址指针给到`Java`层。这里的`NativeMessageQueue`实际并不是个消息队列，它只是名字叫做这个耳机，内部也没什么结构逻辑，只是持有一个`sp<Looper>`对象。
+
+
+
+
+
+
 
