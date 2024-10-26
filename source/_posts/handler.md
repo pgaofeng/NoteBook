@@ -4,14 +4,14 @@ date: 2022-03-07 12:33:47
 categories: Android Framework
 tags:
  - Handler
-banner_img: img/cover/cover-epoll.webp
+banner_img: img/cover/cover-handler.webp
 ---
 
 `Handler`是我们非常熟悉的一个组件，它的主要作用就是进行线程间的交互，通常是主线程与其他工作线程间的交互。这套消息机制在应用开发中用的是最多的，我们使用它来实现切换主线程、发送延时消息等。它主要由`Handler`、`Looper`、`MessageQueue`三个组件组成，其中`Handler`负责发送和处理消息，`Looper`负责循环读取消息，`MessageQueue`负责存储消息。
 
 ## 简单介绍
 
-整套消息机制我们应该非常熟悉了，具体的使用就不再赘述，这里只简单介绍下各个组件的作用。本文基于Android 13源码。
+整套消息机制我们应该非常熟悉了，具体的使用就不再赘述，这里只简单介绍下各个组件的作用。本文基于`Android 13`源码。
 
 ### Handler
 
@@ -112,7 +112,7 @@ class MyThread extends Thread {
   }
 ```
 主线程走的是另一个方法`prepareMainLooper`，当应用的主线程启动后，会调用`prepareMainLooper`创建`Looper`，并赋值给静态变量`sMainLooper`。因此对于应用而言，`sMainLooper`是不会为空的，我们也可以通过它来创建`Handler`。
-```
+```java
 private Handler mMainHandler = new Handler(Looper.getMainLooper);
 ```
 然后便是`Handler`了，由于`Handler`是用于发送消息的，所以`Handler`必须能够获取到`Looper`以便向它的`MessageQueue`中发送消息。因此，`Handler`构造方法中，必须传入`Looper`。
@@ -566,7 +566,7 @@ static jlong android_os_MessageQueue_nativeInit(JNIEnv* env, jclass clazz) {
 ```
 
 即创建了一个`NativeMessageQueue`，然后增强了它的强引用，避免被销毁，然后返回了地址指针给到`Java`层。这里的`NativeMessageQueue`实际并不是个消息队列，它只是名字叫做这个耳机，内部也没什么结构逻辑，只是持有一个`sp<Looper>`对象。注意这里的`Looper`并不是`Java`层的，而是`C++`的`Looper`。
-```
+```c++
 NativeMessageQueue::NativeMessageQueue() :
         mPollEnv(NULL), mPollObj(NULL), mExceptionObj(NULL) {
    mLooper = Looper::getForThread();
@@ -577,7 +577,7 @@ NativeMessageQueue::NativeMessageQueue() :
 }
 ```
 看得出来，`Looper`和`Java`层的`Looper`是一样的，一个线程中只会存在一个。这里的逻辑就是先去根据当前线程获取`Looper`，获取不到的话就去创建一个`Looper`，然后保存起来。`Looper`的位置在`system/core/libutils/Looper.cpp`、`system/core/include/utils/Looper.h`。
-```
+```c++
 Looper::Looper(bool allowNonCallbacks)
    : mAllowNonCallbacks(allowNonCallbacks),
       mSendingMessage(false),
@@ -616,7 +616,7 @@ void Looper::rebuildEpollLocked() {
 ```
 看到这里应该就很熟悉了，前面在[Handler唤起的基础]("https://pgaofeng.github.io/2022/02/23/eventfd-epoll")中详细介绍过`eventfd`和`epoll`机制，其中`epoll`是可以监控多个`eventfd`的，每个`fd`都能唤醒`epoll`，这里默认的唤醒的fd是`mWakeEventfd`。所以初始化的方法也就简洁明了了，创建了一个`Looper`，然后在`Looper`中整了`eventfd`和`epoll`。
 然后看阻塞的方法，应该会和我们想的一样，通过`epoll_wait`等待`eventfd`的状态变化：
-```
+```c++
 static void android_os_MessageQueue_nativePollOnce(JNIEnv* env, jobject obj,
         jlong ptr, jint timeoutMillis) {
     // 根据java传进来的指针获取到MQ
@@ -639,7 +639,7 @@ void NativeMessageQueue::pollOnce(JNIEnv* env, jobject pollObj, int timeoutMilli
 }
 ```
 首先就是在`nativeInit`的时候构建了`NativeMessageQueue`，然后将指针传入到了`Java`层保存在`Java`层的`MessageQueue.mPtr`中。后续所有的操作都是与`mPtr`相关的，从`Java`再到`native`，将`mPtr`指针地址再转换成`NativeMessageQueue`进行操作。如`nativePollOnce`就是最终走到`Looper.pollOnce`。
-```
+```c++
 // Looper.h
 inline int pollOnce(int timeoutMillis) {
     return pollOnce(timeoutMillis, nullptr, nullptr, nullptr);
@@ -742,7 +742,8 @@ Done: ;
 ```
 所以确实是`epoll`机制，最终走到的就是`epoll_wait`进入阻塞，等待被唤醒或者超时被唤醒。并且在这里我们看到了别的逻辑，就是`Looper`不仅仅是给`Java`层使用的，它除了默认用于唤醒的`mWakeEventfd`外，还支持添加别的`eventfd`，并且别的`eventfd`唤醒`epoll`后会构建`Response`来处理这些消息。事实上就是如此，著名的`ServiceManager`就使用了`Looper`，然后将`Binder`的`fd`添加到`Looper`中来监听`Binder`的消息，这是额外的话题，以后再说。
 阻塞的流程我们看完了，接下来看唤醒的流程：
-```
+
+```c++
 // android_os_MessageQueue.cpp
 static void android_os_MessageQueue_nativeWake(JNIEnv* env, jclass clazz, jlong ptr) {
     NativeMessageQueue* nativeMessageQueue = reinterpret_cast<NativeMessageQueue*>(ptr);
@@ -770,4 +771,176 @@ void Looper::wake() {
 
 ### 小结
 `Native`层也有一个`Looper`，他与`Java`层差不多，也是线程唯一的。当在`Java`层创建`MessageQueue`时，也会同时在`Native`层创建一个`NativeMessageQueue`并赋值给`Java`层的`mPtr`属性，由此将二者进行绑定。然后在`NativeMessageQueue`创建时，还会创建`native`层的`Looper`，后续的阻塞和唤醒都是在`native`层的`Looper`中通过`eventfd`和`epoll`机制进行的。
+
+![img/handler.webp](img/handler.webp)
+
+
+
+通过前面对`Java`层的`Handler`消息机制的分析，我们知道了整体的逻辑：
+
+1. 初始化：首先在线程中启用`Java`的`Looper`，此时会创建`Java`的`MessageQueue`用于存储消息，同时会通过`nativeInit`进入到`Native`层创建了`NativeMessageQueue`和`Native`的`Looper`。
+2. 读取：`Java`层的`Looper`会进入循环，一直读取`MessageQueue`中的消息。读不到的时候会通过`nativePollOnce`进入到`native`层，然后在`Native`层的`Looper`中通过`epoll`机制进入阻塞状态。
+3. 写入：`Java`层的`Handler`发送消息到`MessageQueue`中，通过`nativeWake`进入到`native`层，然后在`Native`的`Looper`中向`mWakeEventfd`写入一个值，用于唤醒`epoll`的阻塞。唤醒后回到`Java`层的`Looper`开始处理消息，然后继续阻塞。
+
+这里我们看到实际的阻塞和唤醒都是在`native`层实现的，并且`Native`层还有一个`Looper`。注意这里的`NativeMessageQueue`实际是没啥用的，它存在的作用就是连接`Java`层和`Native`层，它将`native Looper`等信息存储在自己的对象中，然后将对象的地址保存在`Java`中。后续的交互就是`Java`层根据地址找到`NativeMessageQueue`进而找到`native Looper`。
+
+从前面的分析我们知道了`Looper`进入阻塞的时候，是通过`epoll`机制阻塞的，而熟悉`epoll`机制（[点击查看epoll和eventfd](https://pgaofeng.github.io/2022/02/23/eventfd-epoll/)）的我们知道，`epoll`可以监听多个`eventfd`，也就是说我们可以向`Looper`中注册自己的`eventfd`实现阻塞和唤醒。
+
+前面我们看到在`Looper`中，会给我们提供一个默认的`mWakeEventfd`用来唤醒和阻塞，并且这个`fd`仅仅是用来唤醒和阻塞的。但是我们看到`Looper`的逻辑中是可以添加自己的`eventfd`的，然后在被自己的eventfd唤醒的时候还会自动执行操作，类似于一个消息机制了，接下来看看这个是怎么完成的。
+
+```c++
+Looper::addFd(int fd, int ident, int events, Looper_callbackFunc callback, void* data) {
+    sp<SimpleLooperCallback> looperCallback;
+    if (callback) {
+        looperCallback = sp<SimpleLooperCallback>::make(callback);
+    }
+    return addFd(fd, ident, events, looperCallback, data);
+}
+
+int Looper::addFd(int fd, int ident, int events, const sp<LooperCallback>& callback, void* data) {
+    if (!callback.get()) {
+        ...
+    } else {
+        ident = POLL_CALLBACK;
+    }
+ 
+    { // acquire lock
+        AutoMutex _l(mLock);
+        // mWakeEventfd的seq是WAKE_EVENT_FD_SEQ，后续添加的fd都往后排
+        if (mNextRequestSeq == WAKE_EVENT_FD_SEQ) mNextRequestSeq++;
+        const SequenceNumber seq = mNextRequestSeq++;
+
+        Request request;
+        // 唤醒后，根据fd来寻找对应的request处理事件
+        request.fd = fd;
+        request.ident = ident;
+        request.events = events;
+        // 唤醒后由callback处理事件
+        request.callback = callback;
+        request.data = data;
+
+        epoll_event eventItem = createEpollEvent(request.getEpollEvents(), seq);
+        auto seq_it = mSequenceNumberByFd.find(fd);
+        if (seq_it == mSequenceNumberByFd.end()) {
+            // 添加新的eventfd
+            int epollResult = epoll_ctl(mEpollFd.get(), EPOLL_CTL_ADD, fd, &eventItem);
+            mRequests.emplace(seq, request);
+            mSequenceNumberByFd.emplace(fd, seq);
+        } else {
+            // eventfd已经添加过了，则修改fd
+            int epollResult = epoll_ctl(mEpollFd.get(), EPOLL_CTL_MOD, fd, &eventItem);
+            ...
+            const SequenceNumber oldSeq = seq_it->second;
+            mRequests.erase(oldSeq);
+            mRequests.emplace(seq, request);
+            seq_it->second = seq;
+        }
+    } // release lock
+    return 1;
+}
+```
+
+在添加`fd`的时候，要求传入一个`LooperCallback`，它是用来处理消息的，然后将这些参数封装成`Request`对象，然后存入到`mRequest`集合中，并且向`epoll`中添加对应的`eventfd`。正常来说，添加完之后就可以开始监听了，有两个监听的方法：`ponnOnce`和`pollAll`，其中`pollOnce`就是阻塞一次，唤醒后会处理消息，然后就返回了。而`pollAll`则是循环调用`pollOnce`，只要`pollOnce`的返回值是`CALLBACK`，就继续进入阻塞等待事件。
+
+```c++
+int Looper::pollAll(int timeoutMillis, int* outFd, int* outEvents, void** outData) {
+    if (timeoutMillis <= 0) {
+        int result;
+        do {
+            // 只要返回值是POLL_CALLBACK，就一直循环
+            result = pollOnce(timeoutMillis, outFd, outEvents, outData);
+        } while (result == POLL_CALLBACK);
+        return result;
+    } else {
+        nsecs_t endTime = systemTime(SYSTEM_TIME_MONOTONIC)
+                + milliseconds_to_nanoseconds(timeoutMillis);
+
+        for (;;) {
+            // 同样的逻辑，区别就是设置了超时时间后，会在超时时间到达时返回
+            int result = pollOnce(timeoutMillis, outFd, outEvents, outData);
+            if (result != POLL_CALLBACK) {
+                return result;
+            }
+            // 此次唤醒不是超时唤醒，但是在处理完时间后时间到了，也不再阻塞，而是直接返回
+            nsecs_t now = systemTime(SYSTEM_TIME_MONOTONIC);
+            timeoutMillis = toMillisecondTimeoutDelay(now, endTime);
+            if (timeoutMillis == 0) {
+                return POLL_TIMEOUT;
+            }
+        }
+    }
+}
+```
+
+其中`pollOnce`我们前面已经看过了，就是进入阻塞，然后唤醒后构建`Response`，然后进行处理事件。下面再看一次：
+
+```c++
+int Looper::pollOnce(int timeoutMillis, int* outFd, int* outEvents, void** outData) {
+    int result = 0;
+    for (;;) {
+        ...
+        if (result != 0) {
+            ...
+            return result;
+        }
+        result = pollInner(timeoutMillis);
+    }
+}
+
+int Looper::pollInner(int timeoutMillis) {
+    // 准备进入阻塞，先把response清空，后续用于存储唤醒的事件
+    int result = POLL_WAKE;
+    mResponses.clear();
+    mResponseIndex = 0;
+
+    // 开始阻塞，当被唤醒后，唤醒的事件会存在epoll_event数组中
+    mPolling = true;
+    struct epoll_event eventItems[EPOLL_MAX_EVENTS];
+    int eventCount = epoll_wait(mEpollFd.get(), eventItems, EPOLL_MAX_EVENTS, timeoutMillis);
+    mPolling = false;
+
+    ...
+    // 遍历唤醒的事件，然后将其封装成Response
+    for (int i = 0; i < eventCount; i++) {
+        const SequenceNumber seq = eventItems[i].data.u64;
+        uint32_t epollEvents = eventItems[i].events;
+        // 默认的mWakeEventfd的seq是这个，不会封装Response，也不会处理任何事件
+        if (seq == WAKE_EVENT_FD_SEQ) {
+            if (epollEvents & EPOLLIN) {
+                awoken();
+            }
+        } else {
+            // 根据seq找到request，然后构建Response的时候会将二者进行关联
+            const auto& request_it = mRequests.find(seq);
+            if (request_it != mRequests.end()) {
+                const auto& request = request_it->second;
+                int events = 0;
+                if (epollEvents & EPOLLIN) events |= EVENT_INPUT;
+                if (epollEvents & EPOLLOUT) events |= EVENT_OUTPUT;
+                if (epollEvents & EPOLLERR) events |= EVENT_ERROR;
+                if (epollEvents & EPOLLHUP) events |= EVENT_HANGUP;
+                // 封装成Response并添加到mResponse集合中
+                mResponses.push({.seq = seq, .events = events, .request = request});
+            }
+        }
+    }
+Done: ;
+    ...
+    for (size_t i = 0; i < mResponses.size(); i++) {
+        Response& response = mResponses.editItemAt(i);
+        if (response.request.ident == POLL_CALLBACK) {
+            int fd = response.request.fd;
+            int events = response.events;
+            void* data = response.request.data;
+            // 直接执行callback，其中fd和data都是添加fd时的参数没有修改，而events表示的是唤醒的事件
+            int callbackResult = response.request.callback->handleEvent(fd, events, data);
+            ..
+            result = POLL_CALLBACK;
+        }
+    }
+    return result;
+}
+```
+
+所以我们在`c++`层中，就可以通过添加fd以及对应的`callback`，当fd发生变化的时候就会唤醒`epoll`，然后执行`callback`了。实际上`Looper`在`Native`层用的更多，像我们熟悉的`ServiceManager`也使用了`Looper`机制。
 
