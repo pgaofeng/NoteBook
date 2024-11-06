@@ -7,12 +7,12 @@ tags:
 series: binder
 banner_img: img/cover/cover-binder-1.webp
 ---
-Binder是Android中非常非常重要的一个部分，它实现了进程间高效安全的通信。整个Binder系统整体上分为两个部分，一部分是Binder驱动，运行在内核中，也是跨进程的基石；一部分是Binder实体，封装了通信的逻辑，主要用来进行通信的，运行在用户空间中，提供各种服务。实体Binder中有一个特殊的存在ServiceManager，它只给服务来提供服务，用于管理服务的注册和查询。
+`Binder`是`Android`中非常非常重要的一个部分，它实现了进程间高效安全的通信。整个`Binder`系统整体上分为两个部分，一部分是`Binder`驱动，运行在内核中，也是跨进程的基石；一部分是`Binder`实体，封装了通信的逻辑，主要用来进行通信的，运行在用户空间中，提供各种服务。实体`Binder`中有一个特殊的存在`ServiceManager`，它只给服务来提供服务，用于管理服务的注册和查询。
 
-学习Binder能够让我们对Android系统的理解更加深刻，更加清晰各个层级之间的关联。虽然在实际应用中我们几乎很难遇到裸用Binder的，但是想要在Framework上走的更深，Binder是必不可少的一环。并且实际面试中更是经常被问到，因此就算是为了应付面试，我们也应该仔细阅读Binder的实现。
+学习`Binder`能够让我们对`Android`系统的理解更加深刻，更加清晰各个层级之间的关联。虽然在实际应用中我们几乎很难遇到裸用`Binder`的，但是想要在`Framework`上走的更深，`Binder`是必不可少的一环。并且实际面试中更是经常被问到，因此就算是为了应付面试，我们也应该仔细阅读`Binder`的实现。
 
 ## Binder的继承结构
-Binder的设计独特的，它分出了两种Binder，一种是BBinder代表着服务实体，一种是BpBinder代表着服务的代理。在服务的实现中，它们继承自相同的接口并且分别实现了对应的方法。其中BBinder实现了具体的业务，而BpBinder封装了具体的跨进程调用，于是当一个进程拿到另一个进程对应的BpBinder后，就可以直接调用对应的方法，也就是通过同步调用的方式来实现跨进程的异步过程。
+`Binder`的设计独特的，它分出了两种`Binder`，一种是`BBinder`代表着服务实体，一种是`BpBinder`代表着服务的代理。在服务的实现中，它们继承自相同的接口并且分别实现了对应的方法。其中`BBinder`实现了具体的业务，而`BpBinder`封装了具体的跨进程调用，于是当一个进程拿到另一个进程对应的`BpBinder`后，就可以直接调用对应的方法，也就是通过同步调用的方式来实现跨进程的异步过程。
 
 接下来先看下它们的继承结构：
 ### IBinder
@@ -38,7 +38,7 @@ protected:
      virtual          ~IBinder();
 }
 ```
-IBinder中定义了一些Binder的基础能力，所有的Binder都必须实现IBinder的接口，而IBinder又是继承自RefBase，因此可以使用智能指针去引用Binder。BBinder和BpBinder都是IBinder的实现类，从方法名字也能看到，他们分别代表本地Binder和远程Binder。注意这几个方法都是有着默认的空实现的。
+`IBinder`中定义了一些`Binder`的基础能力，所有的`Binder`都必须实现`IBinder`的接口，而`IBinder`又是继承自`RefBase`，因此可以使用智能指针去引用`Binder`。`BBinder`和`BpBinder`都是`IBinder`的实现类，从方法名字也能看到，他们分别代表本地`Binder`和远程`Binder`。注意这几个方法都是有着默认的空实现的。
 
 ### BBinder
 ```c++
@@ -68,7 +68,7 @@ private:
       BBinder& operator=(const BBinder& o);
 };
 ```
-BBinder是本地实体Binder，它继承自IBinder，本身又定义了一个onTranscat方法。transact方法是跨进程发送的方法，因此它是在IBinder中定义的，但是onTransact表示的是接受跨进程调用，因此它只在BBinder中有，因为它才是服务的本体，才需要处理消息事件。
+`BBinder`是本地实体`Binder`，它继承自`IBinder`，本身又定义了一个`onTranscat`方法。`transact`方法是跨进程发送的方法，因此它是在`IBinder`中定义的，但是`onTransact`表示的是接受跨进程调用，因此它只在`BBinder`中有，因为它才是服务的本体，才需要处理消息事件。
 
 ```c++
 // frameworks/native/libs/binder/Binder.cpp
@@ -121,7 +121,7 @@ status_t BBinder::onTransact(
     }
 }
 ```
-对于本地Binder，localBinder返回的就是它本身，而remoteBinder则是默认的返回nullptr。同样的，在transact方法中，会直接走到onTransact中。这是因为它是本地实体，当通过实体Binder的transact方法发送消息的时候，实际是不需要经过跨进程的而是直接就能获取到消息，因此不需要处理发送的细节，而是直接将请求发回给onTransact中进行处理即可。
+对于本地`Binder`，`localBinder`返回的就是它本身，而`remoteBinder`则是默认的返回`nullptr`。同样的，在`transact`方法中，会直接走到`onTransact`中。这是因为它是本地实体，当通过实体`Binder`的`transact`方法发送消息的时候，实际是不需要经过跨进程的而是直接就能获取到消息，因此不需要处理发送的细节，而是直接将请求发回给`onTransact`中进行处理即可。
 
 ### BpBinder
 ```c++
@@ -143,7 +143,7 @@ private:
      virtual             ~BpBinder();
 };
 ```
-BpBinder是远程Binder的代理类，当客户端和服务端处于不同的进程时，客户端会获取到服务端BBinder实体的引用，然后将其包装成BpBinder，通过对BpBinder方法的调用来访问具体的业务，而这些方法最终会走到transact方法中去进行具体的跨进程逻辑。这里提供了一个create的方法来构建BpBinder，参数是handle。这个handle就是远程的服务本体BBinder在当前进程中的唯一索引，是通过SerciceManager查询到的。
+`BpBinder`是远程`Binder`的代理类，当客户端和服务端处于不同的进程时，客户端会获取到服务端`BBinder`实体的引用，然后将其包装成`BpBinder`，通过对`BpBinder`方法的调用来访问具体的业务，而这些方法最终会走到`transact`方法中去进行具体的跨进程逻辑。这里提供了一个`create`的方法来构建`BpBinder`，参数是`handle`。这个`handle`就是远程的服务本体`BBinder`在当前进程中的唯一索引，是通过`SerciceManager`查询到的。
 
 ```c++
 // frameworks/native/libs/binder/BpBinder.cpp
@@ -174,15 +174,15 @@ status_t BpBinder::transact(
 }
 ```
 
-BpBinder在跨进程调用的时候，将参数和命令统一转发给了IPCThread去处理的，因此，我们在具体的服务代理实现中，只需要在对应的方法中封装code和data即可，最后通过transact发送消息即可。
+`BpBinder`在跨进程调用的时候，将参数和命令统一转发给了`IPCThreadState`去处理的，因此，我们在具体的服务代理实现中，只需要在对应的方法中封装code和data即可，最后通过`transact`发送消息即可。
 
 ![](img/binder-1.webp)
 
 ## ServiceManager
 
-上面看了Binder的相关定义，大体上能看出它的设计理念：调用方拿到实体服务的handle去创建服务代理BpBinder，然后实现服务的方法，逻辑是封装code命令和data参数，最终通过transact发送。实体服务继承自BBinder，实现服务的方法并且在onTransact中解析code和data参数，然后调用自己对应的方法。
+上面看了`Binder`的相关定义，大体上能看出它的设计理念：调用方拿到实体服务的`handle`去创建服务代理`BpBinder`，然后实现服务的方法，逻辑是封装code命令和data参数，最终通过`transact`发送。实体服务继承自`BBinder`，实现服务的方法并且在`onTransact`中解析code和data参数，然后调用自己对应的方法。
 
-有了前面的基础我们再去看ServiceManager，前面看到调用方需要拿到实体服务的handle才能创建对应的代理服务BpBinder，这个handle就是通过ServiceManager拿到的。但是ServiceManager和调用方也不是在同一个进程，因此想要和ServiceManager交互就必须拿到ServiceManager的handle，而handle又得通过和ServiceManager交互才能拿到。想解决这个问题，只需要将ServiceManager的handle固定即可，就不需要查询了，因此它的值被固定成为0。这样所有的进程，都可以通过0的来创建ServiceManager的代理服务进而进行交互了。
+有了前面的基础我们再去看`ServiceManager`，前面看到调用方需要拿到实体服务的`handle`才能创建对应的代理服务`BpBinder`，这个`handle`就是通过`ServiceManager`拿到的。但是`ServiceManager`和调用方也不是在同一个进程，因此想要和`ServiceManager`交互就必须拿到`ServiceManager`的`handle`，而`handle`又得通过和`ServiceManager`交互才能拿到。。。想解决这个问题，只需要将`ServiceManager`的`handle`固定即可，就不需要查询了，因此它的值被固定成为0。这样所有的进程，都可以通过0的来创建`ServiceManager`的代理服务进而进行交互了。
 
 ```c++
 // frameworks/native/cmds/servicemanager/main.cpp
@@ -217,9 +217,9 @@ int main(int argc, char** argv) {
 }
 ```
 
-开机时ServiceManager就会启动，它的启动逻辑就是上述逻辑。概述下来就是创建ServiceManager对象，然后注册到自身中，然后将自己设置为binder的管理者，然后开始进入阻塞等待Binder驱动的epoll唤醒，唤醒后再去处理相关的业务。
+开机时`ServiceManager`就会启动，它的启动逻辑就是上述逻辑。概述下来就是创建`ServiceManager`对象，然后注册到自身中，然后将自己设置为`binder`的管理者，然后开始进入阻塞等待`Binder`驱动的`epoll`唤醒，唤醒后再去处理相关的业务。
 
-下面具体看下实现的细节，首先是ProcessState，它的定义在frameworks/native/libs/binder/include/binder/ProcessState.h，这里只是定义了它的一些方法，没什么可看的，直接看它的逻辑部分：
+下面具体看下实现的细节，首先是`ProcessState`，它的定义在`frameworks/native/libs/binder/include/binder/ProcessState.h`，这里只是定义了它的一些方法，没什么可看的，直接看它的逻辑部分：
 
 ```c++
 // frameworks/native/libs/binder/ProcessState.cpp
@@ -246,7 +246,7 @@ sp<ProcessState> ProcessState::init(const char *driver, bool requireDefault)
 }
 ```
 
-也就是在initWithDriver的时候，会通过智能指针的sp::make创建ProcessState对象，并且这个对象是进程中的唯一单例对象。这里的make实际上就是调用了它的new方法创建的，所以直接看构造方法即可。
+也就是在`initWithDriver`的时候，会通过智能指针的`sp::make`创建`ProcessState`对象，并且这个对象是进程中的唯一单例对象。这里的make实际上就是调用了它的new方法创建的，所以直接看构造方法即可。
 
 ```c++
 ProcessState::ProcessState(const char* driver)
@@ -271,7 +271,7 @@ ProcessState::ProcessState(const char* driver)
         mVMStart = mmap(nullptr, BINDER_VM_SIZE, PROT_READ, MAP_PRIVATE | MAP_NORESERVE,
                         opened.value(), 0);
     }
-// 记录驱动的fd
+    // 记录驱动的fd
     if (opened.ok()) {
         mDriverFD = opened.value();
     }
@@ -293,9 +293,9 @@ static base::Result<int> open_driver(const char* driver) {
 }
 ```
 
-在ProcessState的构造方法中，对驱动做了一些基础的设置，如线程数、内存映射等操作。总的来说就是ProcessState是进程内单例的，用于和binder驱动建立连接的一个对象。它是通用的，因此在构造方法中就直接打开驱动并做了一些通用的设置，如设置最大线程数。继续回到启动ServiceManager的main方法中，在initWithDriver后，又重新设置了最大线程数为0：ps->setThreadPoolMaxThreadCount(0)，也就是说ServiceManager中线程池的个数为0，即当前进程只会存在一个默认的主线程。
+在`ProcessState`的构造方法中，对驱动做了一些基础的设置，如线程数、内存映射等操作。总的来说就是`ProcessState`是进程内单例的，用于和`binder`驱动建立连接的一个对象。它是通用的，因此在构造方法中就直接打开驱动并做了一些通用的设置，如设置最大线程数。继续回到启动`ServiceManager`的main方法中，在`initWithDriver`后，又重新设置了最大线程数为0：`ps->setThreadPoolMaxThreadCount(0)`，也就是说`ServiceManager`中线程池的个数为0，即当前进程只会存在一个默认的主线程。
 
-这里我们先不去看驱动的具体实现过程，而是把驱动作为一个黑盒来理解。我们只需要知道可以通过open打开驱动，通过ioctl进行设置和交互，至于具体实现后续再仔细研读。接下来继续回到main方法中，然后看ServiceManager的构造：
+这里我们先不去看驱动的具体实现过程，而是把驱动作为一个黑盒来理解。我们只需要知道可以通过`open`打开驱动，通过`ioctl`进行设置和交互，至于具体实现后续再仔细研读。接下来继续回到main方法中，然后看`ServiceManager`的构造：
 
 ```c++
 // frameworks/native/cmds/servicemanager/ServiceManager.h
@@ -322,7 +322,7 @@ private:
 };
 ```
 
-ServiceManager是为了成为binder服务的管理者，它所相关的方法都是由用户查询和添加服务的，它有一个私有属性ServiceMap，用于存储注册的服务。可以看到它是继承自BnServiceManager的，这是AIDL生成的类，通常情况下我们使用AIDL都是在Java层中使用的，可以省下很多跨进程逻辑的编码。而在C++层也是可以使用AIDL的，它会生成对应的BnServiceManager和BpServiceManager，我们的本地实体服务继承自BnServiceManager，然后实现对应的逻辑。然后BpServiceManager中的逻辑是跨进程交互的逻辑，由AIDL直接生成，后面我们再看它生成的类。文件目录在：frameworks/native/libs/binder/aidl/android/os/IServiceManager.aidl
+`ServiceManager`是为了成为`binder`服务的管理者，它所相关的方法都是由用户查询和添加服务的，它有一个私有属性`ServiceMap`，用于存储注册的服务。可以看到它是继承自`BnServiceManager`的，这是`AIDL`生成的类，通常情况下我们使用AIDL都是在Java层中使用的，可以省下很多跨进程逻辑的编码。而在C++层也是可以使用AIDL的，它会生成对应的`BnServiceManager`和`BpServiceManager`，我们的本地实体服务继承自`BnServiceManager`，然后实现对应的逻辑。然后`BpServiceManager`中的逻辑是跨进程交互的逻辑，由AIDL直接生成，后面我们再看它生成的类。文件目录在：`frameworks/native/libs/binder/aidl/android/os/IServiceManager.aidl`
 
 然后继续看构造方法和添加服务的方法：
 
@@ -346,7 +346,7 @@ Status ServiceManager::addService(const std::string& name, const sp<IBinder>& bi
 }
 ```
 
-这里仅是将自身添加到ServiceMap中存储下来，逻辑比较简单，因为这里也没有发生跨进程的调用，都是发生在ServiceManager的进程中的。添加服务后，它还会注册自己成为服务管理者，`IPCThreadState::self()->setTheContextObject(manager)`。
+这里仅是将自身添加到`ServiceMap`中存储下来，逻辑比较简单，因为这里也没有发生跨进程的调用，都是发生在`ServiceManager`的进程中的。添加服务后，它还会注册自己成为服务管理者，`IPCThreadState::self()->setTheContextObject(manager)`。
 
 ```c++
 // frameworks/native/libs/binder/IPCThreadState.cpp
@@ -390,7 +390,7 @@ void IPCThreadState::setTheContextObject(const sp<BBinder>& obj)
 }
 ```
 
-对于ProcessState，它是进程单例；对于IPCThreadState，它是线程单例。但是由于ServiceManager的线程池设置的为0，因此它们两个实际上都可以算是进程内单例的。然后IPCThreadState#setTheContextObject将自己设置为了服务管理者，对于其他进程的IPCThreadState，他们的the_context_obj实际上是空，所以当它们想获取ServiceManager的时候，就会通过handle为0的句柄去创建BpServiceManager。
+对于`ProcessState`，它是进程单例；对于`IPCThreadState`，它是线程单例。但是由于`ServiceManager`的线程池设置的为0，因此它们两个实际上都可以算是进程内单例的。然后`IPCThreadState#setTheContextObject`将自己设置为了服务管理者，对于其他进程的`IPCThreadState`，他们的`the_context_obj`实际上是空，所以当它们想获取`ServiceManager`的时候，就会通过handle为0的句柄去创建`BpServiceManager`。
 最后一步是将自己注册到binder驱动中，因为它的handle是固定的，因此不需要将binder实体传入到驱动中，直接通过命令注册即可。
 
 ```c++
@@ -413,9 +413,9 @@ bool ProcessState::becomeContextManager()
 }
 ```
 
-到这里ServiceManager的启动流程基本上已经完成了，首先就是通过ProcessState的初始化来打开binder驱动并建立内存映射，然后初始化IPCThreadState用于准备与驱动进行数据交互。最后就是启用looper循环了，然后将驱动的fd添加到epoll中监听binder的变化。可以查看[native looper](https://pgaofeng.github.io/2022/03/07/handler/#Native%E5%B1%82%E6%BA%90%E7%A0%81)的实现细节，也可以查看[epoll机制](https://pgaofeng.github.io/2022/02/23/eventfd-epoll/)的机制的实现。
+到这里`ServiceManager`的启动流程基本上已经完成了，首先就是通过`ProcessState`的初始化来打开binder驱动并建立内存映射，然后初始化`IPCThreadState`用于准备与驱动进行数据交互。最后就是启用`looper`循环了，然后将驱动的`fd`添加到`epoll`中监听`binder`的变化。可以查看[native looper](https://pgaofeng.github.io/2022/03/07/handler/#Native%E5%B1%82%E6%BA%90%E7%A0%81)的实现细节，也可以查看[epoll机制](https://pgaofeng.github.io/2022/02/23/eventfd-epoll/)的机制的实现。
 
-在启动looper循环之前，注册了一个BinderCallback：
+在启动looper循环之前，注册了一个`BinderCallback`：
 
 ```c++
 // frameworks/native/cmds/servicemanager/main.cpp
@@ -453,7 +453,7 @@ int main(int argc, char** argv) {
 }
 ```
 
-在进入looper循环时，将驱动的fd添加到了looper中，这样每次驱动发生变化后，就会通知到ServiceManager，然后由ServiceManager的IPCThreadState去处理消息。同时还会通知到驱动自己已经进入到looper循环了。
+在进入`looper`循环时，将驱动的fd添加到了looper中，这样每次驱动发生变化后，就会通知到`ServiceManager`，然后由`ServiceManager`的`IPCThreadState`去处理消息。同时还会通知到驱动自己已经进入到looper循环了。
 
 ```c++
 // frameworks/native/libs/binder/IPCThreadState.cpp
@@ -478,7 +478,7 @@ void IPCThreadState::flushCommands()
 }
 ```
 
-在通知到驱动自己进入循环的过程，实际上就是与驱动进行的一个交互。先向mOut写入数据，然后再往驱动中进行写入，在前面看IPCThreadState的时候我们知道它有两个私有属性mIn和mOut。其中mIn用于读取驱动发送来的数据，而mOut用来写入即将向驱动写入的数据。最终在talkWithDriver中完成实际的写入和读取：
+在通知到驱动自己进入循环的过程，实际上就是与驱动进行的一个交互。先向mOut写入数据，然后再往驱动中进行写入，在前面看`IPCThreadState`的时候我们知道它有两个私有属性mIn和mOut。其中mIn用于读取驱动发送来的数据，而mOut用来写入即将向驱动写入的数据。最终在`talkWithDriver`中完成实际的写入和读取：
 
 ```c++
 // frameworks/native/libs/binder/IPCThreadState.cpp
@@ -541,9 +541,9 @@ status_t IPCThreadState::talkWithDriver(bool doReceive)
 }
 ```
 
-talkWithDriver如其名字一样，与驱动进行交互。这个方法可以看到它不仅向驱动写入内容，也从驱动读取内容。当有内容需要写入到驱动的时候，先往mOut中写入，然后调用talkWithDriver写入到驱动中。如果想从驱动读取数据，需要先将mIn清空，然后调用talkWithDriver，然后就可以从mIn中读取到驱动写入的内容了。
+`talkWithDriver`如其名字一样，与驱动进行交互。这个方法可以看到它不仅向驱动写入内容，也从驱动读取内容。当有内容需要写入到驱动的时候，先往mOut中写入，然后调用`talkWithDriver`写入到驱动中。如果想从驱动读取数据，需要先将mIn清空，然后调用`talkWithDriver`，然后就可以从mIn中读取到驱动写入的内容了。
 
-然后看looper的回调，正常当向驱动发送数据后，驱动处理完之后会通知到epoll唤醒进程，进而回到looper中注册的回调，然后再走到IPCThreadState中处理：
+然后看`looper`的回调，正常当向驱动发送数据后，驱动处理完之后会通知到`epoll`唤醒进程，进而回到looper中注册的回调，然后再走到`IPCThreadState`中处理：
 
 ```c++
 // frameworks/native/libs/binder/IPCThreadState.cpp
@@ -578,24 +578,24 @@ status_t IPCThreadState::getAndExecuteCommand()
 }
 ```
 
-重新整理下交互逻辑：ServiceManager实例化之后，将自己设置成为服务管理者，并通知到驱动。ProcessState负责打开驱动建立映射，IPCThreadState负责向驱动发送和读取数据。首先向mOut写入数据，然后talkWithDriver将数据发送给驱动，然后驱动读取数据并处理后通过epoll机制回调到looper进而再次走到IPCThreadState，然后再次talkWithDriver让驱动把数据写入到mIn中，然后在executeCommand方法中处理mIn中的数据。
+重新整理下交互逻辑：`ServiceManager`实例化之后，将自己设置成为服务管理者，并通知到驱动。`ProcessState`负责打开驱动建立映射，`IPCThreadState`负责向驱动发送和读取数据。首先向mOut写入数据，然后`talkWithDriver`将数据发送给驱动，然后驱动读取数据并处理后通过epoll机制回调到looper进而再次走到`IPCThreadState`，然后再次`talkWithDriver`让驱动把数据写入到mIn中，然后在`executeCommand`方法中处理mIn中的数据。
 
-到这里ServiceManager的启动逻辑基本上已经清楚了，与驱动交互的逻辑也基本上已经清楚了，这里我们没是将驱动作为黑盒看待的，具体的逻辑以及命令交互的过程都是没仔细看的，这个在后面讲驱动的时候再看了。
+到这里`ServiceManager`的启动逻辑基本上已经清楚了，与驱动交互的逻辑也基本上已经清楚了，这里我们没是将驱动作为黑盒看待的，具体的逻辑以及命令交互的过程都是没仔细看的，这个在后面讲驱动的时候再看了。
 
 ## IServiceManager
 
-前面我们看到的ServiceManager都是定义在frameworks/native/cmds/servicemanager下的，然后继承的BnServiceManager是aidl生成的。实际上，在Android10及以前，ServiceManager是用c语言实现的，没有类的概念也就没有ServiceManager，所有的逻辑都是由C的结构体实现的。
-其他模块基本上都是用的C++，因此为了提供方法给其他模块调用，在frameworks/native/libs/binder/include/binder下定义了IServiceManager.h，并且在frameworks/native/libs/binder/目录下定义了IServiceManager.cpp实现了BpServiceManager类。
+前面我们看到的`ServiceManager`都是定义在`frameworks/native/cmds/servicemanager`下的，然后继承的`BnServiceManager`是aidl生成的。实际上，在`Android10`及以前，`ServiceManager`是用C语言实现的，没有类的概念也就没有`ServiceManager`，所有的逻辑都是由C的结构体实现的。
+其他模块基本上都是用的`C++`，因此为了提供方法给其他模块调用，在`frameworks/native/libs/binder/include/binder`下定义了`IServiceManager.h`，并且在`frameworks/native/libs/binder/`目录下定义了`IServiceManager.cpp`实现了`BpServiceManager`类。
 
-到了Android11以后，ServiceManager弃用了原来的C语言实现，和普通的服务一样使用更加通用的AIDL方式实现，声明文件在：frameworks/native/libs/binder/aidl/android/os/IServiceManager.aidl
+到了`Android11`以后，`ServiceManager`弃用了原来的C语言实现，和普通的服务一样使用更加通用的AIDL方式实现，声明文件在：`frameworks/native/libs/binder/aidl/android/os/IServiceManager.aidl`
 
-编译后生成的文件在：out/soong/.intermediates/frameworks/native/libs/binder/libbinder/android_x86_64_shared/gen/aidl/android/os目录下。一共是四个文件：
-- IServiceManager.h：根据IServiceManager.aidl生成的接口
-- IServiceManager.cpp：实现了BpServiceManager类的方法，通过Parcel中添加参数标记自己要调用的方法以及参数；实现了BnServiceManager中的onTransact方法，解析Parcel中的方法和参数，然后调用到自己本地的方法，然后将返回值再塞进Parcel中返回。
-- BnServiceManager.h：代表着实体服务
-- BpServiceManager.h：代表着远程代理服务
+编译后生成的文件在：`out/soong/.intermediates/frameworks/native/libs/binder/libbinder/android_x86_64_shared/gen/aidl/android/os`目录下。一共是四个文件：
+- `IServiceManager.h`：根据`IServiceManager.aidl`生成的接口
+- `IServiceManager.cpp`：实现了`BpServiceManager`类的方法，通过`Parcel`中添加参数标记自己要调用的方法以及参数；实现了`BnServiceManager`中的`onTransact`方法，解析`Parcel`中的方法和参数，然后调用到自己本地的方法，然后将返回值再塞进`Parcel`中返回。
+- `BnServiceManager.h`：代表着实体服务
+- `BpServiceManager.h`：代表着远程代理服务
 
-通过AIDL实现的ServiceManager更加易于阅读，同时也更容易管理，整个逻辑和Java层的AIDL也是一致的。但是，原本的IServiceManager怎么办？不能废弃了吧，因为很多的地方都在使用IServiceManager，如果直接废弃了而使用AIDL生成的新的IServiceManager改动起来就太多了。因此为了兼容，对老的IServiceManager进行改造，让它的内部持有一个新的ServiceManager，原来的方法都由新的SM来进行处理，这样就不需要改动到别的地方了。
+通过`AIDL`实现的`ServiceManager`更加易于阅读，同时也更容易管理，整个逻辑和Java层的AIDL也是一致的。但是，原本的`IServiceManager`怎么办？不能废弃了吧，因为很多的地方都在使用`IServiceManager`，如果直接废弃了而使用AIDL生成的新的`IServiceManager`改动起来就太多了。因此为了兼容，对老的`IServiceManager`进行改造，让它的内部持有一个新的AIDL生成的的`ServiceManager`，原来的方法都由新的SM来进行处理，这样就不需要改动到别的地方了。
 
 ```c++
 // frameworks/native/libs/binder/include/binder/IServiceManager.h
@@ -622,7 +622,7 @@ sp<IServiceManager> defaultServiceManager();
 }
 ```
 
-原本的IServiceManager和AIDL生成的类的方法基本上是一样的，但是方法的返回值可能会有一些差异，不过差异不大。另外，在IServiceManager.h中，在android的命名空间中增加了一个defaultServiceManager，用于获取到ServiceManager。
+原本的`IServiceManager`和AIDL生成的类的方法基本上是一样的，但是方法的返回值可能会有一些差异，不过差异不大。另外，在`IServiceManager.h`中，在android的命名空间中增加了一个`defaultServiceManager`，用于获取到`ServiceManager`。
 
 ```c++
 // 给AIDL的IServiceManager起了个别名AidlServiceManager
@@ -735,7 +735,7 @@ Vector<String16> ServiceManagerShim::listServices(int dumpsysPriority)
 }
 ```
 
-IServiceManager的实现类实际是ServiceManagerShim，它只是个包装类，实际的方法实现仍然是由AIDL的ServiceManager实现的，它只是起到包装的作用，并且修改了方法返回值等，以适配原本的IServiceManager。同时，它还额外添加了一个方法defaultServiceManager来获取默认的AIDL的ServiceManager，该方法返回的值仍然是进程单例的，在当前进程中只会存在一个ServiceManager。该方法实际是获取到ServiceManager的IBinder对象，然后转成IServiceManager的。
+`IServiceManager`的实现类实际是`ServiceManagerShim`，它只是个包装类，实际的方法实现仍然是由AIDL的`ServiceManager`实现的，它只是起到包装的作用，并且修改了方法返回值等，以适配原本的`IServiceManager`。同时，它还额外添加了一个方法`defaultServiceManager`来获取默认的AIDL的`ServiceManager`，该方法返回的值仍然是进程单例的，在当前进程中只会存在一个`ServiceManager`。该方法实际是获取到`ServiceManager`的`IBinder`对象，然后转成`IServiceManager`的。
 
 ```c++
 // frameworks/native/libs/binder/ProcessState.cpp
@@ -786,13 +786,13 @@ sp<IBinder> ProcessState::getStrongProxyForHandle(int32_t handle)
     return result;
 }
 ```
-getContextObject获取ServiceManager，如果是同一个进程则直接能拿到实体Binder，如果不是同一个进程则创建handle为0的BpBinder，反正最终结果是能拿到一个IBinder，然后再将其转换成IServiceManager就可以了，至于这个IServiceManager是实体服务还是远程代理服务都无所谓啦。
+`getContextObject`获取`ServiceManager`，如果是同一个进程则直接能拿到实体`Binder`，如果不是同一个进程则创建`handle`为0的`BpBinder`，反正最终结果是能拿到一个`IBinder`，然后再将其转换成`IServiceManager`就可以了，至于这个`IServiceManager`是实体服务还是远程代理服务都无所谓啦。
 
 ![UML](img/binder-2.webp)
 
 ## IServiceManager.aidl
 
-一般来说，我们注册服务肯定是获取到IServiceManager，然后通过addService方法进行注册。经过前面的分析我们知道IServiceManager实际上是包装了AIDL的IServiceManager，因此我们可以看看AIDL生成的代码逻辑是怎么样的。注意，AOSP中只有IServiceManager.aidl文件的，想看实现的话必须将源码下载下来进行编译，编译之后才会有我们想要的:
+一般来说，我们注册服务肯定是获取到`IServiceManager`，然后通过`addService`方法进行注册。经过前面的分析我们知道`IServiceManager`实际上是包装了AIDL的`IServiceManager`，因此我们可以看看AIDL生成的代码逻辑是怎么样的。注意，`AOSP`中只有`IServiceManager.aidl`文件的，想看实现的话必须将源码下载下来进行编译，编译之后才会有我们想要的:
 
 ```c++
 // out/soong/.intermediates/frameworks/native/libs/binder/libbinder/
@@ -818,7 +818,7 @@ getContextObject获取ServiceManager，如果是同一个进程则直接能拿�
 }
 ```
 
-首先是往Parcel中写入数据，如服务的名字，服务的本体等。然后通过remote().transact方法进行跨进程的调用，其中remote()方法是定义在BpRefBase中的，它的返回值是IBinder*。而我们获取的IServiceManager的实际类型是BpServiceManager，它是继承自BpInterface，又继承自BpRefBase。因此我们实际是调用到了BpBinder.transact中了。
+首先是往`Parcel`中写入数据，如服务的名字，服务的本体等。然后通过`remote().transact`方法进行跨进程的调用，其中`remote()`方法是定义在`BpRefBase`中的，它的返回值是`IBinder*`。而我们获取的`IServiceManager`的实际类型是`BpServiceManager`，它是继承自`BpInterface`，又继承自`BpRefBase`。因此我们实际是调用到了`BpBinder.transact`中了。
 
 ```c++
 // frameworks/native/libs/binder/include/binder/Binder.h
@@ -846,7 +846,7 @@ private:
 };
 ```
 
-在前面我们看过BpBinder的源码，它的transact实现实际是调用IPCThreadState的transact方法，所以只要是跨进程的逻辑，最终都是走到了IPCThreadState中。
+在前面我们看过`BpBinder`的源码，它的transact实现实际是调用`IPCThreadState`的`transact`方法，所以只要是跨进程的逻辑，最终都是走到了`IPCThreadState`中。
 
 ```c++
 // frameworks/native/libs/binder/IPCThreadState.cpp
@@ -889,7 +889,7 @@ status_t IPCThreadState::writeTransactionData(int32_t cmd, uint32_t binderFlags,
 }
 ```
 
-接下来就进入到驱动了，驱动中会进行一系列的处理，这里也暂时先不去看。反正最后就会走到实体服务BnServiceManager的onTransact方法中：
+接下来就进入到驱动了，驱动中会进行一系列的处理，这里也暂时先不去看。反正最后就会走到实体服务`BnServiceManager`的`onTransact`方法中：
 
 ```c++
 // out/soong/.intermediates/frameworks/native/libs/binder/libbinder/
@@ -916,7 +916,7 @@ status_t IPCThreadState::writeTransactionData(int32_t cmd, uint32_t binderFlags,
 }
 ```
 
-最终是走到ServiceManager实体的addService方法来将服务添加到集合中，addService我们前面看到，就是将binder添加到它的ServiceMap中。同样的，查找服务的时候也是向上面的流程一样，BpServiceManager将所需要的数据写入到Parcel中，然后经由驱动中转，最终到达BnServiceManager中的onTransact：
+最终是走到`ServiceManager`实体的`addService`方法来将服务添加到集合中，`addService`我们前面看到，就是将`binder`添加到它的`ServiceMap`中。同样的，查找服务的时候也是向上面的流程一样，`BpServiceManager`将所需要的数据写入到`Parcel`中，然后经由驱动中转，最终到达`BnServiceManager`中的`onTransact`：
 
 ```c++
 // out/soong/.intermediates/frameworks/native/libs/binder/libbinder/
@@ -941,7 +941,7 @@ status_t IPCThreadState::writeTransactionData(int32_t cmd, uint32_t binderFlags,
 }
 ```
 
-最终走到ServiceManager实体的getService方法中：
+最终走到`ServiceManager`实体的`getService`方法中：
 
 ```c++
 // frameworks/native/cmds/servicemanager/ServiceManager.cpp
@@ -967,13 +967,13 @@ sp<IBinder> ServiceManager::tryGetService(const std::string& name, bool startIfN
     return out;
 }
 ```
-注册服务和查找服务，都是一个跨进程的调用。我们看到在生成的AIDL代码中，在BpServiceManager中会自动将跨进程的方法包装成对应的code和data，然后进行快进程调用。而在BnServiceManager中会自动将数据进行解包判断，然后调用自身的方法，最终实现了跨进程的方法调用。
+注册服务和查找服务，都是一个跨进程的调用。我们看到在生成的AIDL代码中，在`BpServiceManager`中会自动将跨进程的方法包装成对应的code和data，然后进行快进程调用。而在`BnServiceManager`中会自动将数据进行解包判断，然后调用自身的方法，最终实现了跨进程的方法调用。
 
 ## IInterface
 
-至此，我们已经知道了Binder是什么了。它就是一个服务，一个可以跨越进程交互的服务。Binder的设计可以让我们以同步的方式实现跨进程的调用，它封装了具体的细节，让我们在使用的地方完全看不出来它是一个跨进程的调用。
+至此，我们已经知道了`Binder`是什么了。它就是一个服务，一个可以跨越进程交互的服务。`Binder`的设计可以让我们以同步的方式实现跨进程的调用，它封装了具体的细节，让我们在使用的地方完全看不出来它是一个跨进程的调用。
 
-那么服务又是什么呢？服务指的是注册在ServiceManager中的服务，可以说服务就是Binder。在前面我们看defaultServiceManager的时候，它是先获取到ServiceManager的BpBinder，然后通过`interface_cast<AidlServiceManager>`转成的BpServiceManager。如果获取的是BBinder的话，转换的结果就是BnServiceManager。这里之所以转换，就是因为IInterface。
+那么服务又是什么呢？服务指的是注册在`ServiceManager`中的服务，可以说服务就是`Binder`。在前面我们看`defaultServiceManager`的时候，它是先获取到`ServiceManager`的`BpBinder`，然后通过`interface_cast<AidlServiceManager>`转成的`BpServiceManager`。如果获取的是`BBinder`的话，转换的结果就是`BnServiceManager`。这里之所以能够转换，就是因为`IInterface`。
 
 ```c++
 // frameworks/native/libs/binder/include/binder/IInterface.h
@@ -1022,7 +1022,7 @@ protected:
 
 ![URL2](img/binder-3.webp)
 
-在前面我们获取到ServiceManager的IBinder后，就通过interface_cast转换成对应的ServiceManager了。因为BnServiceManager是继承自BBinder的，所以可以直接强转，而BpServiceManager与IBinder并没有直接的继承关系，因此是无法直接强转的。也就是说，interface_cast肯定肯定不是简单的强转，而是有一定的逻辑在其中。
+在前面我们获取到`ServiceManager`的`IBinder`后，就通过`interface_cast`转换成对应的`ServiceManager`了。因为`BnServiceManager`是继承自`BBinder`的，所以可以直接强转，而`BpServiceManager`与`IBinder`并没有直接的继承关系，因此是无法直接强转的。也就是说，`interface_cast`肯定不是简单的强转，而是有一定的逻辑在其中。
 
 ```c++
 // frameworks/native/libs/binder/include/binder/IInterface.h
@@ -1034,7 +1034,7 @@ inline sp<INTERFACE> interface_cast(const sp<IBinder>& obj)
 }
 ```
 
-其中interface_cast是定义在IInterface文件中的一个模板类方法，它的实现方法实际上是调用它指向的对象的asInterface方法，但是我们翻遍了所有的类和它的父类，都没有发现asInterface在哪定义的。再仔细看看实际是在IInterface中的一个宏中定义的：
+其中`interface_cast`是定义在`IInterface`文件中的一个模板类方法，它的实现方法实际上是调用它指向的对象的`asInterface`方法，但是我们翻遍了所有的类和它的父类，都没有发现`asInterface`在哪定义的。再仔细看看实际是在`IInterface`中的一个宏中定义的：
 
 ```c++
 // frameworks/native/libs/binder/include/binder/IInterface.h
@@ -1058,7 +1058,7 @@ private:                                                                        
 public:
 ```
 
-它定义了一个descriptor属性以及一些方法，asInterface就是其中之一。同样的，它的实现部分也是在宏中定义的：
+它定义了一个`descriptor`属性以及一些方法，`asInterface`就是其中之一。同样的，它的实现部分也是在宏中定义的：
 
 ```c++
 // 我们应该使用这个宏来实现对应的方法
@@ -1107,7 +1107,7 @@ public:
 
 ```
 
-实现逻辑就是先从IBinder中查询IInterface，查不到的时候表示当前的IBinder不是实体BBinder，而是一个BpBinder。因此直接创建对应的Bp类型的Service即可。其中，queryLocalInterface是定义在IBinder中的方法，但是在BnInterface中也定义了一次，也就是说我们实际调用的是BnInterface中的方法。
+实现逻辑就是先从`IBinder`中查询`IInterface`，查不到的时候表示当前的`IBinder`不是实体`BBinder`，而是一个`BpBinder`。因此直接创建对应的Bp类型的`Service`即可。其中，`queryLocalInterface`是定义在`IBinder`中的方法，但是在`BnInterface`中也定义了一次，也就是说我们实际调用的是`BnInterface`中的方法。
 
 ```c++
 // frameworks/native/libs/binder/include/binder/IInterface.h
@@ -1122,13 +1122,13 @@ inline sp<IInterface> BnInterface<INTERFACE>::queryLocalInterface(
 }
 ```
 
-实际上interface_cast就是判断IBinder的类型，然后转换成Bn类型的服务或者Bp类型的服务。
+实际上`interface_cast`就是判断`IBinder`的类型，然后转换成Bn类型的服务或者Bp类型的服务。
 
 ### 定义一个服务
 
-看了IInterface的实现以及相关的类，我们实际上已经可以模仿着AIDL的实现来实现自己的一个服务MyService了。 
+看了`IInterface`的实现以及相关的类，我们实际上已经可以模仿着AIDL的实现来实现自己的一个服务`MyService`了。 
 
-第一步，定义服务的接口，需要继承自IInterface，同时使用宏增加一些方法和实现：
+第一步，定义服务的接口，需要继承自`IInterface`，同时使用宏增加一些方法和实现：
 
 ```c++
 class IMyService : public IInterface {
@@ -1140,7 +1140,7 @@ public:
 IMPLEMENT_META_INTERFACE(MyService, "com.demo.IMyService")
 ```
 
-第二步，实现BnMyService：
+第二步，实现`BnMyService`：
 
 ```c++
 class BnMyService : public BnInterface<IMyService> {
@@ -1171,7 +1171,7 @@ public:
 }
 ```
 
-第三步，实现BpMyService：
+第三步，实现`BpMyService`：
 
 ```c++
 class BpMyService : public BpInterface<IMyService> {
