@@ -3,7 +3,7 @@ title: Binder和服务
 date: 2022-04-20 14:03:09
 categories: Android Framework
 tags:
- - binder
+ - Binder
 series: binder
 banner_img: img/cover/cover-binder-1.webp
 ---
