@@ -480,13 +480,266 @@ public static int getChildMeasureSpec(int spec, int padding, int childDimension)
 
 ### layout
 
+还是从`ViewRootImpl`开始触发，`View`绘制的三个流程都是在`performTraverals`中触发的。
+
+```java
+// ViewRootImpl.java
+private void performTraversals() {
+    ...
+    // 和measure的条件是一样的
+    final boolean didLayout = layoutRequested && (!mStopped || mReportNextDraw);
+    if (didLayout) {
+        performLayout(lp, mWidth, mHeight);
+        ...
+    }
+    ...
+}
+```
+
+进入布局的条件和前面的进入测量的条件是一样的，也就是说，`measure`和`layout`通常是一起生效的。最终通过`preformLayout`进入实际的布局阶段，其中参数`mWidth`和`mHeight`是在前面赋值的，其实际为`mWinFram`的宽高，即窗口的宽高。
+
+```java
+// ViewRootImpl.java
+private void performLayout(WindowManager.LayoutParams lp, int desiredWindowWidth,
+            int desiredWindowHeight) {
+    mScrollMayChange = true;
+    // 标记开始测量
+    mInLayout = true;
+    // host即为DecorView
+    final View host = mView;
+    if (host == null) {
+       return;
+    }
+
+    try {
+        // 开始实际触发布局
+        host.layout(0, 0, host.getMeasuredWidth(), host.getMeasuredHeight());
+        ...
+    } finally {
+        Trace.traceEnd(Trace.TRACE_TAG_VIEW);
+    }
+    mInLayout = false;
+}
+```
+
+其中`host`即是`View`树中的树根节点`DecorView`，由此布局的过程进入到`View`体系中。这里不去看具体的实现，直接看`ViewGroup`中的布局流程。
+
+```java
+// ViewGroup.java
+@Override
+public final void layout(int l, int t, int r, int b) {
+    if (!mSuppressLayout && (mTransition == null || !mTransition.isChangingLayout())) {
+        if (mTransition != null) {
+            mTransition.layoutChange(this);
+        }
+        super.layout(l, t, r, b);
+    } else {
+        // record the fact that we noop'd it; request layout when transition finishes
+        mLayoutCalledWhileSuppressed = true;
+    }
+}
+```
+
+基本上是什么都没做的，最终还是回到`super.layout()`中。
+
+```java
+// View.java
+public void layout(int l, int t, int r, int b) {
+    // 测量过程中，如果从缓存中获取到了以前测量过的结果，是不会触发测量的，而是直接跳过测量，同时设置了该flag
+    // 会在布局过程中再次触发onMeasure，
+    if ((mPrivateFlags3 & PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT) != 0) {
+        onMeasure(mOldWidthMeasureSpec, mOldHeightMeasureSpec);
+        mPrivateFlags3 &= ~PFLAG3_MEASURE_NEEDED_BEFORE_LAYOUT;
+    }
+
+    int oldL = mLeft;
+    int oldT = mTop;
+    int oldB = mBottom;
+    int oldR = mRight;
+
+    // 在setFrame中，会判断这四个值是否发生了变化，如果变化了，则重新赋值并返回true
+    boolean changed = isLayoutModeOptical(mParent) ?
+            setOpticalFrame(l, t, r, b) : setFrame(l, t, r, b);
+
+    // 如果宽高发生了变化，或者触发过measure测量，则重新布局。这个flag是测量时赋值的
+    if (changed || (mPrivateFlags & PFLAG_LAYOUT_REQUIRED) == PFLAG_LAYOUT_REQUIRED) {
+    	// 触发布局，在ViewGroup中是抽象方法，在View中是空实现
+        onLayout(changed, l, t, r, b);
+        mPrivateFlags &= ~PFLAG_LAYOUT_REQUIRED;
+        ...
+    }
+    ...
+}
+```
+
+ 在`layout`中可以看到还会调用了一次`onMeasure`，这是因为在`measure`时，如果新的宽高属性在之前已经被测量过并且还在缓存中存储时，是不会去通过`onMeasure`继续测量的，而是直接设置为缓存的宽高，并通过设置`flag`将`onMeasure`延迟到了`layout`流程中。本身引入缓存的机制是为了节省一次测量流程的，但是实际上很多`View`还是依赖`onMeasure`的，因此不能完全省略，而是将其延迟到了`layout`前执行，这样可以将`performTraverals`中可能出现的多次测量的过程缩减到一次，整体上还是提高了测量的效率的。
+
+然后就是设置它本身的宽高，如果上下左右的坐标发生了变化，或者前面测量过，则通过`onLayout`将布局流程继续分发下去。`onLayout`是一个空实现，但是在`ViewGroup`中被重写为抽象方法。因此，如果我们是自定义`View`，实际上是不需要处理这个方法的，因为我们的位置是由父布局来设置的；但是如果我们是自定义的`ViewGroup`中，则必须要重写该方法，并在该方法中去布局它自己的子`View`。
+
+例如我们看`FrameLayout`的实现：
+
+```java
+// FrameLayout.java
+@Override
+protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+    layoutChildren(left, top, right, bottom, false /* no force left gravity */);
+}
+
+void layoutChildren(int left, int top, int right, int bottom, boolean forceLeftGravity) {
+    final int count = getChildCount();
+    ...
+    for (int i = 0; i < count; i++) {
+        final View child = getChildAt(i);
+        if (child.getVisibility() != GONE) {
+            ...
+            child.layout(childLeft, childTop, childLeft + width, childTop + height);
+        }
+    }
+}
+```
+
+实际看到就是计算需要给子`View`布局的左右坐标，然后通过`layout`方法继续将布局流程给到子`View`。需要注意的就是在`onLayout`中，坐标值实际上是相对于父布局的，因此如果一个`View`被放置在父布局的左上角，那么在`onLayout`中的`left`和`top`值均为0。
+
+### draw
+
+同样的，还在从`ViewRootImpl`中触发，然后回到`View`中。
+
+```java
+// ViewRootImpl.java
+private void performTraversals() {
+    if (!isViewVisible) {
+       ...
+       // 界面不可见
+    } else if (cancelAndRedraw) {
+       // 重新触发三个流程
+       scheduleTraversals();
+    } else {
+        ....
+        // 通过performDraw触发绘制
+        if (!performDraw() && mActiveSurfaceSyncGroup != null) {
+            mActiveSurfaceSyncGroup.markSyncReady();
+        }
+    }
+}
+
+private boolean performDraw() {
+    ...
+    final boolean fullRedrawNeeded = mFullRedrawNeeded || mActiveSurfaceSyncGroup != null;
+    mFullRedrawNeeded = false;
+    mIsDrawing = true;
+    ...
+    try {
+        // 绘制
+        boolean canUseAsync = draw(fullRedrawNeeded, usingAsyncReport && mSyncBuffer);
+        ...
+    } finally {
+        mIsDrawing = false;
+    }
+    return true;
+}
+```
+
+最终触发到`draw`方法中，这里实际还没有到`view`中，因为这里涉及`surface`以及硬件加速，所以会有很多的流程，才会走到`view`中。
+
+```java
+private boolean draw(boolean fullRedrawNeeded, boolean forceDraw) {
+    ...
+    final float appScale = mAttachInfo.mApplicationScale;
+    final Rect dirty = mDirty;
+    // 记录上次的Rect
+    if (fullRedrawNeeded) {
+        dirty.set(0, 0, (int) (mWidth * appScale + 0.5f), (int) (mHeight * appScale + 0.5f));
+    }
+    // ViewTreeObserver.onDraw
+    mAttachInfo.mTreeObserver.dispatchOnDraw();
+    ...
+    boolean useAsyncReport = false;
+    if (!dirty.isEmpty() || mIsAnimating || accessibilityFocusDirty) {
+        if (isHardwareEnabled()) {
+            // 开启了硬件加速
+            mAttachInfo.mThreadedRenderer.draw(mView, mAttachInfo, this);
+        } else {
+            ...
+            if (!drawSoftware(surface, mAttachInfo, xOffset, yOffset,
+                    scalingRequired, dirty, surfaceInsets)) {
+                return false;
+            }
+        }
+    }
+    ...
+    return useAsyncReport;
+}
 
 
+private boolean drawSoftware(Surface surface, AttachInfo attachInfo, int xoff, int yoff,
+    boolean scalingRequired, Rect dirty, Rect surfaceInsets) {
 
+    // Draw with software renderer.
+    final Canvas canvas;
+    ...
+    try {
+        // 根据偏移移动画布
+        canvas.translate(-xoff, -yoff);
+        if (mTranslator != null) {
+            mTranslator.translateCanvas(canvas);
+        }
+        canvas.setScreenDensity(scalingRequired ? mNoncompatDensity : 0);
+        // 进入到View的绘制流程
+        mView.draw(canvas);
+        drawAccessibilityFocusedDrawableIfNeeded(canvas);
+    } finally {
+        ...
+    }
+    return true;
+}
+```
 
+我们的`View`的绘制流程，实际上是属于软件绘制的，也就是`drawSoftware`，最终走到`View`的绘制流程中。注意在`ViewGroup`是没有重写`draw`的，因此最终走到的是在`view`中。
 
+```java
+@CallSuper
+public void draw(Canvas canvas) {
 
+    /*
+     *      1. 绘制背景
+     *      2. 保存画布等待做渐隐边界
+     *      3. 绘制View的内容
+     *      4. 绘制子View
+     *      5. 恢复画布并做渐隐边界
+     *      6. 绘制滚动条
+     *      7. 绘制焦点的高亮
+     */
 
+    // 步骤1，绘制背景
+    int saveCount;
+    drawBackground(canvas);
+
+    final int viewFlags = mViewFlags;
+    boolean horizontalEdges = (viewFlags & FADING_EDGE_HORIZONTAL) != 0;
+    boolean verticalEdges = (viewFlags & FADING_EDGE_VERTICAL) != 0;
+    // 如果没有渐隐渐现的边界要求，则跳过步骤2和5
+    if (!verticalEdges && !horizontalEdges) {
+        // 步骤3，绘制自身内容
+        onDraw(canvas);
+        // 步骤4，绘制子View
+        dispatchDraw(canvas);
+        // 步骤6，绘制前景和滚动条
+        onDrawForeground(canvas);
+        // 步骤7，绘制焦点高亮
+        drawDefaultFocusHighlight(canvas);
+         // 绘制结束
+         return;
+    }
+    // 后面的流程没有省略步骤2和5，按顺序绘制的
+    ...
+}
+```
+
+绘制流程一共分了7个步骤，其他的我们基本上不需要去关注，基本上只需要关注步骤3即可。通常情况下，如果我们是自定义`ViewGroup`是不需要关注绘制的，如果是自定义`View`，则需要重写`onDraw`，然后在画布中绘制我们想要的界面内容即可。这个方法在`View`中也是一个空实现，等待我们重写并进行自定义绘制。
+
+### 总结
+
+到这里，基本上`View`的绘制流程已经看完了，主要就是由`ViewRootImpl`触发的`performTraversals`，进入触发到`View`树的测量、布局、绘制三个流程。对于应用开发而言，如果是自定义`ViewGroup`，则重写`onMeasure`测量自身并触发子`View`的测量，然后重写`onLayout`触发子`View`的布局；如果是自定义`View`，则重写`onMeasure`测量自身，然后重写`onDraw`绘制自身内容即可。
 
 
 
