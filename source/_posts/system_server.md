@@ -216,7 +216,7 @@ public final class LocalServices {
 
 最后也就是`system_server`的最主要的流程了，就是启动各种服务，注意这里的服务并不是Binder服务，而是Java层中定义的服务，它们并不能注册到`ServiceManager`中的。
 
-#### boot服务
+#### bootstrap服务
 
 这里启动的是系统启动引导服务，是非常重要的一系列服务。
 
@@ -307,7 +307,11 @@ public final class SystemServiceManager implements Dumpable {
 }
 ```
 
-因为这些服务都是继承自`SystemService`的，所以启动服务就是通过`class`反射调用构造方法，获取到实例，并加入到本地的一个集合中保存用于避免重复启动服务，而实际的启动服务就是执行其`onStart`方法而已。下面我们用`PowerMS`作为示例查看下：
+因为这些服务都是继承自`SystemService`的，所以启动服务就是通过`class`反射调用构造方法，获取到实例，并加入到本地的一个集合中保存用于避免重复启动服务，而实际的启动服务就是执行其`onStart`方法而已，因此，对应的服务应该在`onStart`中处理自己的逻辑，完成服务的启动。
+
+##### WatchDog
+
+`WatchDog`看门狗是用于保障服务的正常运行的，它在启动`boot`服务的最开始就已经通过`start`启动了，它本身也可以算是一个独立运行的服务或线程，其他服务如果想要接入的话，则需要在其`onStart`中将其自身添加进来。如下面的下面我们用`PowerMS`作为示例查看下：
 
 ```java
 // frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java
@@ -334,47 +338,90 @@ public final class PowerManagerService extends SystemService
 }
 ```
 
-可以看到`PowerMS`确实是继承自`SystemService`的，实际上所有的通过`SystemServiceManager`启动的服务都应该要继承自`SystemService`。在`PowerMS`的`onStart`中，注册了远程`Binder`服务以及本地服务，然后就是将自己以及Handler加入到了看门狗中。那么，看门狗又是如何监控的呢？
+我们可以看到，在`PowerManagerService`中，继承自`WatchDog.Monitor`，然后在启动时先添加了`monitor`，再添加了一个线程，该线程就是`Handler`线程。我们一步一步往下看，先是添加`Monitor`：
 
 ```java
 // frameworks/base/services/core/java/com/android/server/Watchdog.java
 
 public class Watchdog implements Dumpable {
-    // 添加监控者，这里是PowerMS
+
+    private final HandlerChecker mMonitorChecker;
+    private final ArrayList<HandlerCheckerAndTimeout> mHandlerCheckers = new ArrayList<>();
+    
+    private Watchdog() {
+        // 启动线程，当WatchDog启动时实际就是启动该线程
+        mThread = new Thread(this::run, "watchdog");
+        // 前台线程
+        mMonitorChecker = new HandlerChecker(FgThread.getHandler(),"foreground thread");
+        mHandlerCheckers.add(withDefaultTimeout(mMonitorChecker));
+    	...
+    }
+    
+    // 添加到前台检测中，这里是PowerMS的主线程
     public void addMonitor(Monitor monitor) {
         synchronized (mLock) {
             mMonitorChecker.addMonitorLocked(monitor);
         }
     }
-    // 添加线程
+    // 添加到检测集合中，这里是PowerMS的Handler线程
     public void addThread(Handler thread) {
         synchronized (mLock) {
             final String name = thread.getLooper().getThread().getName();
             mHandlerCheckers.add(withDefaultTimeout(new HandlerChecker(thread, name)));
         }
     }
-    
-    // 获取实例
-    public static Watchdog getInstance() {
-        if (sWatchdog == null) {
-            sWatchdog = new Watchdog();
-        }
-        return sWatchdog;
-    }
+}
+```
 
-    // 构造方法
-    private Watchdog() {
-        // 创建了看门狗线程
-        mThread = new Thread(this::run, "watchdog");
-        mMonitorChecker = new HandlerChecker(FgThread.getHandler(),
-                "foreground thread");
-        ...
+从这里可以看出，在`WatchDog`中有一个集合常量，里面存储的全都是需要检测的线程，然后在构造方法中会提前创建一个检测线程即前台线程，当`addMonitor`实际就是添加到前台线程检测中，而`addThread`则是添加到检测集合中，与前台线程是同一级别的。看下`Ha`的结构：
+
+```java
+// frameworks/base/services/core/java/com/android/server/Watchdog.java
+
+public class Watchdog implements Dumpable {
+
+    public final class HandlerChecker implements Runnable {
+        // 待检测的线程    
+        private final Handler mHandler;
+        // 线程的名字
+        private final String mName;
+        // 检测开始时，会将待检测的Monitor添加到这里面进行检测，避免
+        // 检测时再添加Monitor导致多线程的异常
+        private final ArrayList<Monitor> mMonitors = new ArrayList<Monitor>();
+        // 待检测的Monitor
+        private final ArrayList<Monitor> mMonitorQueue = new ArrayList<Monitor>();
+        // 最大等待时长
+        private long mWaitMax;
+        // 是否检测完毕
+        private boolean mCompleted;
+        private Monitor mCurrentMonitor;
+        private long mStartTime;
+        private int mPauseCount;
+
+        HandlerChecker(Handler handler, String name) {
+            mHandler = handler;
+            mName = name;
+            mCompleted = true;
+        }
     }
-    
-    // 开启看门狗，实际就是开启线程
-    public void start() {
-        mThread.start();
-    }
+}
+```
+
+`HandlerChecker`是`WatchDog`的一个内部类，其内也有一个集合用于存放各种`Monitor`，实际上检测就是去执行各个`HandlerChecker`中的`Monitor`集合。至于我们通过`addThread`添加进来的会被包装成`HandlerCheckerAndTimeout`实际就是多了一个自定义的超时时间而已。
+
+![HandlerChecker](img/watchdog-checker.webp)
+
+
+
+接下来就是`WatchDog`的启动了，注意这里的启动是在服务启动之前就已经启动了的，然后服务启动时会将自身添加到`WatchDog`中：
+
+```java
+// frameworks/base/services/core/java/com/android/server/Watchdog.java
+
+public class Watchdog implements Dumpable {
+    // 超时时间，debug模式下是10秒，否则是60秒
+    private static final long DEFAULT_TIMEOUT = DB ? 10 * 1000 : 60 * 1000;
+    ...
     
     // 开启看门狗后线程执行的方法
     private void run() {
@@ -391,105 +438,229 @@ public class Watchdog implements Dumpable {
             final long checkIntervalMillis = watchdogTimeoutMillis / 2;
             final ArrayList<Integer> pids;
             synchronized (mLock) {
+                // 30秒
                 long timeout = checkIntervalMillis;
-                // 遍历要检测的线程，前面我们addThread加入的就是这里
+                // 遍历所有的Checkers，包括前台线程以及通过addThread添加的Handler线程
                 for (int i=0; i<mHandlerCheckers.size(); i++) {
                     HandlerCheckerAndTimeout hc = mHandlerCheckers.get(i);
-                    // 执行方法
+                    // 执行方法，参数时长还是60秒
                     hc.checker().scheduleCheckLocked(hc.customTimeoutMillis()
                             .orElse(watchdogTimeoutMillis * Build.HW_TIMEOUT_MULTIPLIER));
                 }
+                ...
+            }
+        }
+    }
+}
+```
 
-               
+从上面代码可以看出，`WatchDog`在运行时会遍历所有的`Checker`，然后执行其`scheduleCheckLocked`方法，然后再通过`wait`方法等待，我们先看下`Checker`做了什么：
+
+```java
+// frameworks/base/services/core/java/com/android/server/Watchdog.java
+
+public class Watchdog implements Dumpable {
+
+    public final class HandlerChecker implements Runnable {
+        public void scheduleCheckLocked(long handlerCheckerTimeoutMillis) {
+            // 最大等待时长60秒
+            mWaitMax = handlerCheckerTimeoutMillis;
+            // 当前状态是已完成状态，说明是重新开始的，这里将monitor加入到待执行的集合中
+            if (mCompleted) {
+                mMonitors.addAll(mMonitorQueue);
+                mMonitorQueue.clear();
+            }
+            // 待检测的monitor为空并且handler处于空闲状态，或者当前Checker的检测被暂停了
+            // 就直接返回并结束
+            if ((mMonitors.size() == 0 && mHandler.getLooper().getQueue().isPolling())
+                    || (mPauseCount > 0)) {
+                mCompleted = true;
+                return;
+            }
+            // 此时已经在执行中了，不需要再次执行
+            if (!mCompleted) {
+                return;
+            }
+            // 标记当前状态
+            mCompleted = false;
+            mCurrentMonitor = null;
+            mStartTime = SystemClock.uptimeMillis();
+            // 开始执行检测
+            mHandler.postAtFrontOfQueue(this);
+        }
+        
+        // Checker实际执行的逻辑
+        @Override
+        public void run() {
+            // 遍历自身的Monitor集合，执行其monitor方法
+            final int size = mMonitors.size();
+            for (int i = 0 ; i < size ; i++) {
+                synchronized (mLock) {
+                    mCurrentMonitor = mMonitors.get(i);
+                }
+                mCurrentMonitor.monitor();
+            }
+            // 全部执行完就返回了
+            synchronized (mLock) {
+                mCompleted = true;
+                mCurrentMonitor = null;
+            }
+        }
+    }
+}
+```
+
+使`Checker`开始执行，最后实际是往其对应的`Handler`中发送消息，在其`Handler`的线程中执行它里面的`Monitor`。而在`PowerMS`中，它的`monitor()`方法什么都没做，只是获取锁再释放锁而已。其实默认情况下很多的服务的检测方法都是仅仅获取并是否锁来判断前台线程是否发生死锁的。
+
+```java
+// frameworks/base/services/core/java/com/android/server/power/PowerManagerService.java
+public final class PowerManagerService extends SystemService
+        implements Watchdog.Monitor {
+    @Override // Watchdog.Monitor implementation
+    public void monitor() {
+        // 当前台线程发生死锁时，这里获取不到锁会一直卡在这里
+        synchronized (mLock) {
+        }
+    }
+}
+```
+
+如果我们自己的服务，就可以在`monitor`中做一些自己的检测逻辑。继续回到`WatchDog`的`run`中往下看：
+
+```java
+// frameworks/base/services/core/java/com/android/server/Watchdog.java
+
+public class Watchdog implements Dumpable {
+    
+    private int evaluateCheckerCompletionLocked() {
+        int state = COMPLETED;
+        // 遍历所有的Checker，找出等待状态
+        for (int i=0; i<mHandlerCheckers.size(); i++) {
+            HandlerChecker hc = mHandlerCheckers.get(i).checker();
+            state = Math.max(state, hc.getCompletionStateLocked());
+        }
+        return state;
+    }
+    
+    private void run() {
+        boolean waitedHalf = false;
+
+        while (true) {
+            ...
+            synchronized (mLock) {
+                // 前半部分的逻辑就是调用所有的Checker，然后执行其内部的Monitor
+                // 这些monitor默认的实现大部分都是获取锁再释放锁
+                ...
                 long start = SystemClock.uptimeMillis();
                 while (timeout > 0) {
+                    // 等待30秒并释放掉锁，这样monitor才能执行
                     try {
-                        // 进入等待状态，并设置超时时间
                         mLock.wait(timeout);
                     } catch (InterruptedException e) {
                         Log.wtf(TAG, e);
                     }
+                    // 计算等待时间是否是30秒，如果不是30秒说明当前线程被异常中断唤醒了
+                    // 因此需要继续等待
                     timeout = checkIntervalMillis - (SystemClock.uptimeMillis() - start);
                 }
-                // 评估所有任务的状态
+                // 30秒后开始计算当前的等待状态
                 final int waitState = evaluateCheckerCompletionLocked();
                 if (waitState == COMPLETED) {
-                    // 任务都完成了
+                    // 所有的Checker都是正常完成了的，标记状态后再次进入检测
                     waitedHalf = false;
                     continue;
                 } else if (waitState == WAITING) {
-                    // 有任务还未完成，并且等待时长还未超过超时时间的一半
+                    // 还有任务未完成，并且等待时间未超过一半的超时时间，再次进入检测
                     continue;
                 } else if (waitState == WAITED_HALF) {
-                    // 有任务还未完成，并且等待时间超过了超时时间的一半
+                    // 还有任务未完成，并且此时时间已经超过一半的超时时间了
                     if (!waitedHalf) {
-                        Slog.i(TAG, "WAITED_HALF");
+                        // 标记已经等了一半的时间了
                         waitedHalf = true;
-                        // We've waited half, but we'd need to do the stack trace dump w/o the lock.
+                        // 获取超过一半时间的Checker
                         blockedCheckers = getCheckersWithStateLocked(WAITED_HALF);
+                        // 记录这些Checker的信息，后面会打印出来
                         subject = describeCheckersLocked(blockedCheckers);
                         pids = new ArrayList<>(mInterestingJavaPids);
                         doWaitedHalfDump = true;
                     } else {
+                        // 已经标记过等了一半时间了，继续循环执行等待
                         continue;
                     }
                 } else {
-                    // something is overdue!
+                    // 有Checker超时了，获取到这些Checker并记录信息，后面打印
                     blockedCheckers = getCheckersWithStateLocked(OVERDUE);
                     subject = describeCheckersLocked(blockedCheckers);
+                    // 标记为true，后续会重启
                     allowRestart = mAllowRestart;
                     pids = new ArrayList<>(mInterestingJavaPids);
                 }
-            } // END synchronized (mLock)
+            }// END synchronized (mLock)
+            
+            // 打印日志，这里会打印超过一半超时时间的Checker信息，以及完全超时的Checker信息
+            logWatchog(doWaitedHalfDump, subject, pids);
+            // 如果打印的是超过一半超时时间的信息，则继续循环等待
+            if (doWaitedHalfDump) {
+                continue;
+            }
 
+            IActivityController controller;
+            synchronized (mLock) {
+                controller = mController;
+            }
+            if (controller != null) {
+                try {
+                    Binder.setDumpDisabled("Service dumps disabled due to hung system process.");
+                    // 由IActivityController来检测下是否需要重启系统
+                    // 1:继续等待，-1：杀死进程
+                    int res = controller.systemNotResponding(subject);
+                    if (res >= 0) {
+                        Slog.i(TAG, "Activity controller requested to coninue to wait");
+                        waitedHalf = false;
+                        continue;
+                    }
+                } catch (RemoteException e) {
+                }
+            }
+
+            if (Debug.isDebuggerConnected()) {
+                debuggerWasConnected = 2;
+            }
+            if (debuggerWasConnected >= 2) {
+                Slog.w(TAG, "Debugger connected: Watchdog is *not* killing the system process");
+            } else if (debuggerWasConnected > 0) {
+                Slog.w(TAG, "Debugger was connected: Watchdog is *not* killing the system process");
+            } else if (!allowRestart) {
+                Slog.w(TAG, "Restart not allowed: Watchdog is *not* killing the system process");
+            } else {
+                Slog.w(TAG, "*** WATCHDOG KILLING SYSTEM PROCESS: " + subject);
+                WatchdogDiagnostics.diagnoseCheckers(blockedCheckers);
+                Slog.w(TAG, "*** GOODBYE!");
+                if (!Build.IS_USER && isCrashLoopFound()
+                        && !WatchdogProperties.should_ignore_fatal_count().orElse(false)) {
+                    breakCrashLoop();
+                }
+                // 杀死system_server进程手机
+                Process.killProcess(Process.myPid());
+                System.exit(10);
+            }
             waitedHalf = false;
         }
     }
 }
 ```
 
-也就是当`WatchDog`创建出来并启动时，会在子线程中开始一个死循环，并循环处理`HandlerCheckerAndTimeout`消息。这个消息就是我们添加监控时传递进来的，当通过`addThread`添加监控时，会构建一个`HandlerCheckerAndTimeout`，然后加入到它的内部类`HandlerChecker`中。然后死循环中就是遍历这个集合去执行任务。
+`WatchDog`设置超时时长为60秒，系统或卡顿，或阻塞，或死锁等超过了60秒(`debug`下是10秒)就会直接杀死`system_server`进程重启手机。整体流程：`WatchDog`触发添加到它内部的所有的`Checker`执行，而`Checker`又会向它内部的`Handler`发消息以执行它内部的`Monitor`集合，然后`WatchDog`等待30秒，查看是否有`Checker`未完成，如果已完成则再次循环触发检测，如果未完成并且阻塞了也未超过30秒则再次循环继续等待，如果未完成超过了30秒，则打印这些`Checker`的信息，如果未完成并且超过了60秒，则杀死进程并重启手机。
 
-```java
-public void scheduleCheckLocked(long handlerCheckerTimeoutMillis) {
-    mWaitMax = handlerCheckerTimeoutMillis;
-    if (mCompleted) {
-        // 当前处于完成状态，把monitor队列添加到集合中
-        mMonitors.addAll(mMonitorQueue);
-        mMonitorQueue.clear();
-    }
-    // 没有可执行的monitor，说明任务完成
-    if ((mMonitors.size() == 0 && mHandler.getLooper().getQueue().isPolling())
-            || (mPauseCount > 0)) {
-        mCompleted = true;
-        return;
-    }
-    if (!mCompleted) {
-        // 如果是未完成状态，不需要再次执行
-        return;
-    }
-    // 标记为未完成状态
-    mCompleted = false;
-    mCurrentMonitor = null;
-    mStartTime = SystemClock.uptimeMillis();
-    // 开始执行任务
-    mHandler.postAtFrontOfQueue(this);
-}
+`WatchDog`检测的是添加的`Handler`线程是否阻塞，以及`system_server`的`Handler`线程以及运行在其线程上的对应的服务是否阻塞。
 
-@Override
-public void run() {
-    final int size = mMonitors.size();
-    // 执行所有的monitor
-    for (int i = 0 ; i < size ; i++) {
-        synchronized (mLock) {
-            mCurrentMonitor = mMonitors.get(i);
-        }
-        mCurrentMonitor.monitor();
-    }
-     synchronized (mLock) {
-        mCompleted = true;
-        mCurrentMonitor = null;
-    }
-}
-```
+#### 核心服务和其他服务
+
+核心服务与`bootstrap`服务的逻辑差不多，都是通过`SystemServiceManager`启动的，区别就是核心服务不会加入到`WatchDog`中。其他服务`startOtherServices`中启动的是更低一级的服务，它更不会加入到`WatchDog`中了，如我们非常熟悉的`WindowManagerService`就属于其他服务，正常如果我们自定义服务的话，都可以加在其他服务中。
+
+### 总结
+
+到这里我们基本上看完了`system_server`进程，它作为`zygote`的第一个`java`进程，主要作用就是启动各种服务进程。它首先是注册了`dump`服务用于命令行进行调试，然后通过`SystemServiceManager`启动各种我们常见的服务，按照服务的重要性分类，其中`bootstrap`类型的服务最为重要，在这些服务上使用了`WatchDog`进行监测，一旦这些服务或者`system_server`卡死，就会直接杀死进程。所以，我们熟悉的`AMS`、`PMS`都是运行在`system_server`进程的。
+
+
 
