@@ -168,8 +168,6 @@ private suspend fun doSomething() {
    D  DefaultDispatcher-worker-1 = 5
   ```
 
-  
-
 - 自定义调度器
 
   自定义调度器可以通过继承自`CoroutineDispatcher`来实现，但是会比较麻烦。而我们知道实际的调度器就是个线程池，因此可以直接创建出线程池`Executor`，然后通过拓展方法`asCoroutineDispatcher`转换成调度器。
@@ -186,6 +184,204 @@ private suspend fun doSomething() {
 
 
 #### 协程的取消
+
+`Job`代表的是协程任务，而取消也是通过`Job#cancel`进行取消的。但是它的取消并不是直接取消掉，而是需要协程本身的响应。
+
+```kotlin
+private fun doSomething() {
+    val job = scope.launch {
+        for (i in 0..100) {
+            Thread.sleep(1000)
+            log("协程任务：$i")
+        }
+    }
+    Thread.sleep(3000)
+    job.cancel()
+    log("取消协程")
+}
+-----------------
+
+ D  协程任务：0
+ D  协程任务：1
+ D  取消协程
+ D  协程任务：2
+ ....
+```
+
+像上述示例，我们启动的协程并在其中做循环操作，然后在3秒后取消协程，但是实际它并没有被取消掉。这是因为协程本身并没有去响应取消的操作，正常我们启动的协程必须要响应取消操作。
+
+上述代码中的`for`循环中，将`Thread.sleep`改为`delay`就可以正常取消了，因为协程库中所有提供的可挂起函数都是已经适配了取消操作的，所以我们可以通过`delay`来响应取消操作。但是这里我们是通过`sleep`模拟的耗时操作，实际中是不能直接替换成`delay`的，所以我们需要别的方式，如：`yield`。
+
+```kotlin
+private fun doSomething() {
+    val job = scope.launch {
+        for (i in 0..100) {
+            yield()
+            Thread.sleep(1000) // delay(1000)
+            log("协程任务：$i")
+        }
+    }
+    Thread.sleep(3000)
+    job.cancel()
+    log("取消协程")
+}
+```
+
+通过`yield`更贴切实际开发，因为中间的1秒的耗时操作是真实耗时的，无法被替换成`delay`的。而`yield`表示的是让出当前协程的调度，让其他协程有机会在对应的线程中执行，正常是不会影响到我们的执行的，所以响应协程的取消主要就是要在代码块中存在协程的检查点，这个检查点可以是协程提供的挂起函数。
+
+如果我们不想直接使用协程的挂起函数，那么可以使用`isActive`来进行判断，当协程取消时，该属性会被置为false，我们可以通过这个属性来取消协程。
+
+```kotlin
+private fun doSomething() {
+    val job = scope.launch {
+        for (i in 0..100) {
+            if (!isActive) {
+                // 当前状态为false时，直接结束协程的执行
+                return@launch
+            }
+            Thread.sleep(1000) // delay(1000)
+            log("协程任务：$i")
+        }
+    }
+    Thread.sleep(3000)
+    job.cancel()
+    log("取消协程")
+}
+```
+
+通过在`for`循环中检查`isActive`的值来结束协程，这样是可以结束掉协程的，但这属于正常的退出。对于取消操作，我们在结束时还需要抛出`CancellationException`给到上层。所以上面的`return@launch`应该修改为`throw CancellationException("msg")`，当然还有更优雅的方式，就是将整个判断改为`ensureActive()`就可以了，它内部也是这样的一个判断过程。
+
+所以：如上示例我们的耗时操作是多个耗时操作，每个耗时操作是1秒，所以当我们正在执行操作时被取消了，此时会过去1秒后再次循环时才会进入判断并取消掉。 
+
+#### 异常处理
+
+协程的执行过程中是可能会发生异常的，正常我们都是通过`try catch`进行捕获的，我们在协程内部也可以通过`try catch`在具体的位置进行捕获异常，但是我们无法直接对整个协程进行捕获异常。
+
+```kotlin
+private fun doSomething() {
+    // 无法捕获到异常，会直接闪退
+    try {
+        scope.launch {
+            1 / 0
+        }
+    } catch (e: Exception) {
+    }
+    // 协程内部可以捕获到
+    scope.launch { 
+        try {
+            1 / 0
+        } catch (e: Exception) {
+        }
+    }
+    // 无法捕获异常，会直接闪退
+    scope.launch {
+        try {
+            launch { 
+                1 / 0
+            }
+        } catch (e: Exception) {}
+    }
+}
+```
+
+所以不论是父协程还是子协程，异常都是无法直接`try catch`的。协程中提供了一个专门用于处理异常的捕获器，叫做`CoroutineExceptionHandler`，整个协程树下的异常都会被其捕获。
+
+```kotlin
+@Suppress("FunctionName")
+public inline fun CoroutineExceptionHandler(crossinline handler: (CoroutineContext, Throwable) -> Unit): CoroutineExceptionHandler =
+    object : AbstractCoroutineContextElement(CoroutineExceptionHandler), CoroutineExceptionHandler {
+        override fun handleException(context: CoroutineContext, exception: Throwable) =
+            handler.invoke(context, exception)
+    }
+```
+
+方法名和返回值类型是一样的，这是方便我们直接创建异常处理器。正常直接通过该方法传递一个异常处理的表达式即可，如下例：
+
+```kotlin
+private val scope = CoroutineScope(CoroutineExceptionHandler { coroutineContext, throwable -> 
+    // 这里处理异常情况
+    log("捕获到的协程的异常： $throwable")
+})
+    
+private fun doSomething() {
+    scope.launch {
+       1 / 0
+    }
+}
+```
+
+#### 回调转协程
+
+协程是`Kotlin`中的特性，其底层仍是通过回调方式完成的，实际上协程也提供给了我们一些方法来处理回调问题。我们的老项目，大多数都是`Java`实现的，基本上所有的异步操作都是通过回调的方式实现的。而有了协程后，再也难以忍受回调了，我们迫切希望使用协程。
+
+然而使用协程重写一份肯定是非常消耗人力的，并且会对老的代码带来改动，因此我们采用包装的方式，将回调转成协程，这样就不需要改动老代码，而新功能就可以直接使用协程了。
+
+```java
+public static void request(String url,  Callback callback) {
+    Request request = new Request.Builder()
+            .url(url)
+            ...
+            .build();
+    client.newCall(request)
+            .enqueue(new okhttp3.Callback() {
+                @Override
+                public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                    callback.onFail(e);
+                }
+                @Override
+                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                    callback.onSuccess(response.body());
+                }
+            });
+}
+
+public interface Callback {
+    void onSuccess(ResponseBody body);
+    void onFail(Throwable throwable);
+}
+
+// 实际使用中通过回调处理
+request(url, new Callback() {
+    @Override
+    public void onSuccess(ResponseBody body) {
+        // 处理网络请求成功的逻辑
+    }
+    @Override
+    public void onFail(Throwable throwable) {
+       // 处理失败的逻辑
+    }
+});
+```
+
+如上，通常是我们简单封装网络请求的一种方式，实际使用通过`request`方法进行网络请求，当然这里只是简化逻辑，实际可能比这个复杂，但整体还是使用的回调的方式。然后我们引入`kotlin`以及协程后，肯定不想再这样进行网络请求，肯定想要用更时髦的协程方式，因此我们在`kotlin`中创建一个新的方法来包装回调方法：
+
+```kotlin
+private suspend fun request(url:String): ResponseBody? = suspendCancellableCoroutine { result ->
+    kotlin.runCatching {
+        NetUtils.request(url, object : NetUtils.Callback {
+            override fun onSuccess(body: ResponseBody?) {
+                result.resumeWith(Result.success(body))
+            }
+
+            override fun onFail(e: Throwable) {
+                result.resumeWithException(e)
+            }
+        })
+    }.onFailure {
+        result.resumeWithException(it)
+    }
+}
+
+// 实际使用
+launch {
+    val body = request(url)
+    // 处理逻辑
+}
+```
+
+可以看到，通过`suspendCancellableCoroutine`可以包裹整块逻辑，然后在后面的代码块中执行我们实际的请求逻辑，这里并没有重新封装网络请求，仍然是调用的老的回调方式的网络请求，然后在回调中将协程的结果返回，这样就可以将回调转成协程了，使用方式也更加简单。
+
+
 
 
 
