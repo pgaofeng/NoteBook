@@ -189,7 +189,7 @@ class MyCoroutineContext(
     ...
 }
 ```
-最后还有一个`EmptyCoroutineContext`表示的空上下文，实际是个单例对象，本身并没有任何实现，它存在的意义就是避免直接返回null，让协程上下文至少存在一个上下文。
+最后还有一个`EmptyCoroutineContext`表示的空上下文，实际是个单例对象，本身并没有任何实现，它存在的意义就是避免直接返回`null`，让协程上下文至少存在一个上下文。
 ```kotlin
 public object EmptyCoroutineContext : CoroutineContext, Serializable {
     private const val serialVersionUID: Long = 0
