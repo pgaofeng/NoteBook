@@ -1,7 +1,18 @@
+---
+title: 协程上下文-CoroutineContext
+date: 2023-04-29 21:14:03
+categories: Kotlin
+tags:
+ - Coroutine
+ - Kotlin
+banner_img: img/cover/cover-coroutine-context.webp
+---
 
 ### CoroutineContext
+
 前面我们了解了`Kotlin`协程的使用方式以及一些注意的点，但我们并没有具体查看它的实现细节以及原理。我们知道切换协程执行的线程可以使用`Dispatchers`，我们知道一个协程的引用是一个`Job`，我们也知道协程中遇到异常需要使用`CoroutineExceptionHandler`，如果我们仔细观察它们的父类，最终可以发现它们都继承自`CoroutineContext`。
 `CoroutineContext`被称为协程上下文，他是一种独特的结构，除了本身的上下文以外，它还是一种类似`Map`的结构，本文主要分析其结构的组成。
+
 ```kotlin
 public interface CoroutineContext {
     // 重写get，可以根据key获取对应的上下文
