@@ -3,8 +3,7 @@ title: 在Android中使用Bsdiff实现增量更新
 date: 2021-09-06 21:07:51
 categories: Third Libraries
 tags: 
-  - 增量更新
-  - bsdiff
+  - BSDiff
 banner_img: img/cover/cover-bsdiff.webp
 ---
 
@@ -149,11 +148,11 @@ bzlib.o: bzlib.c
 .
 ├── src
 │   ├── main
-│   	├── cpp
-│   		├── bzip2-1.0.6
-|			├── bspatch.c
-│   		├── nativelib.cpp
-│   		└── CMakeLists.txt
+│       ├── cpp
+│           ├── bzip2-1.0.6
+|           ├── bspatch.c
+│           ├── nativelib.cpp
+│           └── CMakeLists.txt
 ├
 ...
 ```
