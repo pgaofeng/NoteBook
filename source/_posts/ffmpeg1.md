@@ -162,3 +162,109 @@ ls
 3. `ffmpeg`、`ffplay`、`ffrpobe`是`FFmpeg`的命令行工具，因为我们不需要它们，因此直接`disable`即可
 
 更多的参数涉及到了封装、编码等相关功能，实际上基本所有的功能都是通过`disable`和`enable`命令来打开和关闭的，因此需要我们自己衡量并进行裁剪。因为`FFmpeg`的功能是非常多的，如果我们不做任何裁剪的话，生成的`so`也会很大，如果只是作为学习的话，就不用去裁剪了，完整版的才是最好的。具体的功能配置在`ffmpeg-7.1.1/configure`文件中都有说明。
+
+### 引入到安卓中
+
+如果先麻烦可以直接新建一个`native C++`项目，如果是已有项目则可以新建一个`Module`，然后将其配置成支持`C++`，如果不会配置的话，直接创建一个新的`native C++`项目，然后抄一下`gradle`的写法即可。
+
+然后就是引入我们编译好的`so`文件，首先修改`gradle`：
+
+```kotlin
+android {
+    ...
+    defaultConfig {
+        ...
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            // 如果是groovy的话，改成如下形式
+            // abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
+    }
+}
+```
+
+主要就是修改`abiFilters`，因为我们只编译了这两种`so`。接着就是将`so`放在项目中，在该`module`的`src/main`目录下新建一个目录，注意如果`AGP`版本低于`4.0`的话，新建的目录名称需要是`jniLibs`，高于`4.0`就随意命名了，这里我命名的是`libs`目录。然后在该目录下新建两个目录分别为`arm64-v8a`和`armeabi-v7a`，然后将前面生成的`so`分别放在对应的目录中，大概的层级如下：
+
+```
+module
+  |-src
+    |-main
+      |-libs
+        |-arm64-v8a
+          |--libavformat.so
+          |--....
+        |-armeabi-v7a
+          |--libavformat.so
+          |--....
+```
+
+接下来修改项目中的`CMakeLists.txt`，将我们的so和头文件包含进去。首先是将`FFmpeg`的头文件放在`cpp`的目录中，这里为了区分新建了一个文件夹来放头文件，目录如下：
+
+```
+module
+  |-src
+    |-main
+      |-libs
+      |-cpp
+        |-libraries
+          |-ffmpeg
+            |-include
+          |-CMakeLists.txt
+          |-native-lib.cpp
+```
+
+然后修改`CMakeLists.txt`，将头文件包含进来，然后在引入`so`文件：
+
+```cmake
+cmake_minimum_required(VERSION 3.22.1)
+project("ffmpegdemo")
+
+# 引入ffmpeg的头文件
+include_directories("libraries/ffmpeg/include")
+
+# 引入ffmpeg的库文件，根据实际引入，这里选择全引入
+set(FFmpegs avcodec avdevice avfilter avformat avutil swresample swscale)
+foreach (item IN LISTS FFmpegs)
+    add_library(${item} SHARED IMPORTED)
+    set_target_properties(
+            ${item}
+            PROPERTIES IMPORTED_LOCATION
+            ${CMAKE_SOURCE_DIR}/../libs/${CMAKE_ANDROID_ARCH_ABI}/lib${item}.so
+    )
+endforeach ()
+
+# 这是新建项目时自己创建的，暂时不用修改
+add_library(${CMAKE_PROJECT_NAME} SHARED
+        native-lib.cpp)
+
+target_link_libraries(${CMAKE_PROJECT_NAME}
+        ${FFmpegs} # 将ffmpeg的库都引入
+        android
+        log)
+```
+
+到这里就已经引入完成了，我们直接编译一个`apk`，然后将其拖入到`as`中，就能看到`apk`中已经包含了我们引入的`FFmpeg`的`so`。
+
+我们可以直接修改`native-lib.cpp`中返回字串的函数，然后调用`FFmpeg`的方法查看我们编译`FFmpeg`时的配置信息：
+
+```c++
+#include <jni.h>
+#include <string>
+
+extern "C" {
+#include "libavutil/avutil.h"
+}
+
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_example_ffmpegdemo_MainActivity_stringFromJNI(
+        JNIEnv* env,
+        jobject /* this */) {
+	// 能成功调用，说明引入成功了
+    const char* str  = avutil_configuration();
+    return env->NewStringUTF(str);
+}
+```
+
+直接运行在手机上就能看到输出的信息确实是我们编译时的`configure`信息，注意需要在真机上运行，因为我们编译的是`arm`的`so`库，想在虚拟机上运行的话，还需要编译`x86`或`x86_64`的库。
+
