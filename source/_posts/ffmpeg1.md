@@ -81,7 +81,7 @@ function build() {
 	    --cpu=$CPU \
 	    --sysroot=$SYSROOT \
 	    --cc=${C_PREFIX}clang \
-	    --cxx=${C_PREFIX}/clang++ \
+	    --cxx=${C_PREFIX}clang++ \
 	    --pkg-config=pkg-config \
 	    --disable-static \
 	    --enable-shared \
@@ -133,7 +133,7 @@ ls
 	--cpu=$CPU \
 	--sysroot=$SYSROOT \
 	--cc=${C_PREFIX}clang \
-	--cxx=${C_PREFIX}/clang++ \
+	--cxx=${C_PREFIX}clang++ \
 	--pkg-config=pkg-config \
 ```
 
