@@ -69,16 +69,15 @@ TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin
 SYSROOT=$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot
 # 交叉编译的前缀，所有的命令都会加上这个前缀
 CROSS_PREFIX=$TOOLCHAIN/llvm-
-# Android版本，用于获取不同的cc和cxx命令
+# Android版本，用于获取不同的cc命令
 API=30
 
 function build() {
     ./configure \
-	    --prefix=$PREFIX/$CPU \
+	    --prefix=$PREFIX/$ABI \
 	    --cross-prefix=$CROSS_PREFIX \
 	    --target-os=android \
 	    --arch=$ARCH \
-	    --cpu=$CPU \
 	    --sysroot=$SYSROOT \
 	    --cc=${C_PREFIX}clang \
 	    --cxx=${C_PREFIX}clang++ \
@@ -87,30 +86,37 @@ function build() {
 	    --enable-shared \
 	    --disable-ffmpeg \
 	    --disable-ffplay \
-	    --disable-ffprobe \
-	# 构建前需要清除下，不然会有问题
+	    --disable-ffprobe 
+
 	make clean
 	make -j16
-	# 将编译结果安装到PREFIX的目录中
 	make install
 }
 
 echo "build armeabi-v7a..."
 ARCH=arm
-CPU=armv7a
+ABI=armeabi-v7a
 C_PREFIX=$TOOLCHAIN/armv7a-linux-androideabi$API-
 build
 
-echo "build arm64-v8a..."
-ARCH=arm64
-CPU=armv8a
+echo "build arm64-v8a"
+ARCH=aarch64
+ABI=arm64-v8a
 C_PREFIX=$TOOLCHAIN/aarch64-linux-android$API-
+build
+
+echo "build x86_64"
+ARCH=x86_64
+ABI=x86_64
+C_PREFIX=$TOOLCHAIN/x86_64-linux-android$API-
 build
 ```
 
-在然后就是进行构建了，这里编了两个不同架构的so库，一个是`armv7a`一个是`arm64`的，根据自己实际的项目进行选择，想要编译直接调用该脚本即可。
+在然后就是进行构建了，这里编了三个不同架构的so库，一个是32位的`armv7a`，一个是64位的`arm64`的，还有一个模拟器的`x86_64`的，根据自己实际的项目进行选择，想要编译直接调用该脚本即可。
 
 ```shell
+# 编译x86的so时需要安装nasm工具
+sudo apt install nasm
 # 构建
 ./build.sh
 # 查看编译结果
@@ -130,7 +136,6 @@ ls
 	--cross-prefix=$CROSS_PREFIX \
 	--target-os=android \
 	--arch=$ARCH \
-	--cpu=$CPU \
 	--sysroot=$SYSROOT \
 	--cc=${C_PREFIX}clang \
 	--cxx=${C_PREFIX}clang++ \
@@ -142,7 +147,7 @@ ls
 2. `--cross-prefix`，它代表着交叉编译的前缀。编译的过程会涉及到很多的命令，如`nm`、`ar`等，正常编译会直接找到系统命令去进行编译，但我们编的不是当前平台，而是`android`平台，因此不能直接找系统中的这些命令，而是从`ndk`中查找。`android-ndk-r27c/toolchains/llvm/prebuilt/linux-x86_64/bin`这个目录中就是我们需要的命令，可以看到除了`clang`和`clang++`与平台版本有差异外，其他的都没有差异，而是都加了`llvm-`的前缀，因此这里的参数我们也需要设置成`llvm-`。
 
 3. `--target-os`，目标平台直接填`android`就行。
-4. `--arch` 和`--cpu`目标平台的架构，常见的`armv7a`是32位的架构，最通用的架构、`armv8a`是64位的架构，目前的主流架构。
+4. `--arch` ，目标平台的架构，常见的`arm`是32位的架构，最通用的架构，老机型用的多；`aarch64`是64位的架构，目前的主流架构；`x86_64`模拟器上使用。
 5. `sysroot`系统查找目录，包含了头文件以及对应的链接库文件，对应的是`android-ndk-r27c/toolchains/llvm/prebuilt/linux-x86_64/sysroot`目录
 6. `--cc`和`--cxx`，编译c和c++的命令，对应着`llvm`中的`clang`和`clang++`。注意这里是有区分的，需要区分不同的架构和安卓版本号，如果我们不指定这两个参数的话，它会使用前面设置的`prefix`来查找命令，如它会去找`llvm-clang`命令，结果当然是找不到的。因此这里我们给他手动指定前缀，具体前缀可以在`android-ndk-r27c/toolchains/llvm/prebuilt/linux-x86_64/bin`目录中找到clang命令，然后查看规律在设置就行了，如`armv7a`，安卓30对应的是`armv7a-linux-androideabi30-clang`命令，`armv8a`安卓30对应的是`aarch64-linux-android30-clang`命令。
 7. `--pkg-config`，这个是属于系统命令，需要确保系统中有安装`pkg-config`，可以通过`sudo apt install pkg-config`进行安装，为什么要明确指定呢，因为前面我们有设置`--cross-prefix`，该属性应用后会导致命令变成`llvm-pkg-config`，导致找不到对应的命令，因此我们才需要重新指定下。
@@ -175,9 +180,9 @@ android {
     defaultConfig {
         ...
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
             // 如果是groovy的话，改成如下形式
-            // abiFilters 'arm64-v8a', 'armeabi-v7a'
+            // abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
         }
     }
 }
@@ -194,6 +199,9 @@ module
           |--libavformat.so
           |--....
         |-armeabi-v7a
+          |--libavformat.so
+          |--....
+        |-x86_64
           |--libavformat.so
           |--....
 ```
@@ -266,5 +274,5 @@ Java_com_example_ffmpegdemo_MainActivity_stringFromJNI(
 }
 ```
 
-直接运行在手机上就能看到输出的信息确实是我们编译时的`configure`信息，注意需要在真机上运行，因为我们编译的是`arm`的`so`库，想在虚拟机上运行的话，还需要编译`x86`或`x86_64`的库。
+直接运行就能看到输出的信息确实是我们编译时的`configure`信息。
 
