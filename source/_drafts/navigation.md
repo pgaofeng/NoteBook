@@ -93,11 +93,22 @@ fun HomeScreen(navController: NavController) {
 
 跳转通过`navController.navigate`跳到指定的界面，然后通过`navController.navigateUp`返回。当然，按下返回键实际上也相当于执行了`navigateUp`，会进行返回。
 
-到这里，我们其实已经掌握了最简单的使用方式了，即定义导航图，然后进行跳转和返回。但实际中我们肯定不会这么简单的，因为会涉及到参数的传递、`ViewModel`的使用、界面跳转的动销等等，接下来我们继续看下这些额外的使用场景。
+到这里，我们其实已经掌握了最简单的使用方式了，即定义导航图，然后进行跳转和返回。但实际中我们肯定不会这么简单的，因为会涉及到参数的传递、`ViewModel`的使用、界面跳转的动销等等，接下来我们继续看下详细的功能。
 
-## 传递参数
+## NavHost
 
+`NavHost`是用来创建导航图的，它本质上是个接口类，当然我们并不需要关注它的类型，我们直接使用对应的方法即可。在`NavHost.kt`中，提供了一个方法来创建导航图，与接口类的名称是一样的，方法名也是`NavHost`。我们需要关注的是它的方法参数。
 
+- `navController` 导航控制器，与当前`NavHost`关联的控制器，当前`host`中定义的界面就是通过该控制器进行跳转返回等操作。
+- `startDestination`起始的导航页，注意这里类型在不同的函数重载中可以为`String`也可以为`KClass`类型，具体要根据自己的定义导航的方式。
+- `modifier`页面参数修改器，该修改器影响的是路由的整个界面。
+- `contentAlignment` 注释说是`AnimatedContent`的对其方式，但是`AnimatedContent`自己已经有这个参数了，它为啥还要用你提供的呢？
+- `route`暂未发现有什么用，网上说是用于多个`NavHost`之间跳转，实测不行。
+- `enterTransition`进入界面的切换动画、`exitTransition`原界面的消失动画、`popEnterTransition`返回时进入界面的动画、`popExitTransition`返回时原界面的消失动画。如果不指定的话，`popEnter`和`enter`的动画是一致的，`popExit`和`exit`的动画是一致的。举个例子：A界面跳转到B界面，此时A界面执行`exit`动画，B界面执行`enter`动画；然后从B界面返回到A界面时，B界面执行`popExit`动画，A界面执行`popEnter`动画。
+- `sizeTransform`动画过程中的控制
+- `builder`创建对应的界面
+
+以上就是创建`NavHost`的参数，我们重点关注的就是起始页以及四个动效，从而控制我们页面的跳转动画。在最后一个参数`builder`中，我们需要创建对应的界面，通常我们使用`composable`方法来声明一个普通界面，通过`dialog`声明一个对话框界面。
 
 
 
