@@ -159,6 +159,19 @@ public static void useDemo(Demo<? super String> demo) {
 
 而下限`<? super A>`的意思是泛型类型确定了下界，它只能是这个下界的父类型，因此我们不能通过`String`来引用获取到的数据，而只能通过`Object`来引用。但是我们却可以给他设置数据，只能设置`String`或者它的父类。
 
+注意：`extends`关键字不仅可以在通配符`?`后使用，也可以在任何泛型类和泛型方法中使用，但是`super`仅能在通配符`?`后使用。
+
+```java
+// Demo类接收的泛型类型必须是Parent或其子类
+class Demo<T extends Parent> {
+    
+    // 泛型方法的参数必须是Person或其子类
+    public <K extends Person> void doSomething(K person) {}
+}
+```
+
+
+
 ### 泛型继承
 
 泛型仍然是支持继承和覆写的，对于泛型方法而言，继承后覆写仍是泛型方法，而泛型类却可以指定类型。
