@@ -97,6 +97,142 @@ Icon(
 
 唯一需要注意的就是在`IconData`的参数中的第一个参数，它代表的是图标的代码，这是在构建`ttf`文件时就已经确定的。
 
+#### ElevatedButton
+
+`Flutter`中内置了好几种的按钮类型，可以根据需要进行选择，它们的用法基本上是一致的，只是样式有所不同。如`ElevatedButton`，是一个悬浮按钮，即默认看起来是悬浮的，有阴影效果和圆角效果。
+
+```dart
+ElevatedButton({
+    super.key,
+    required super.onPressed,
+    super.onLongPress,
+    super.onHover,
+    super.onFocusChange,
+    super.style,
+    required super.child,
+})
+```
+
+其中`onPressed`参数接收一个空参的函数类型，作为点击事件的回调，属于必须添加的属性，在安卓中这种事件一般被称为`onClick`。另外还有一个长按的回调，`onLongPress`也是一个空参数的函数类型。`onHover`鼠标悬停时的回调，是一个`bool`参数的函数类型。`onFocusChange`是焦点发生变化时的回调。
+
+然后就是`style`，它是控制整个按钮样式的属性，类型为`ButtonStyle`，可以通过它来设置按钮的背景色、前景色、阴影、圆角、高度、间距、形状等等。在我们实际的开发中，按钮的样式肯定是不会和默认保持一致的，因此我们需要重新设置`style`以适配我们自己项目的按钮样式。
+
+还有一个必填的属性就是`child`，一般情况下我们会将其设置为`Text`，即按钮中间的文本。也就是说，按钮实际上是由两部分组成，一部分是外部的按钮样式（边框圆角等），一部分是内部的文案（按钮文案等）。
+
+```dart
+ElevatedButton(
+  onPressed: () {
+    // onPressed
+  }, 
+  child: Text("Button")
+),
+```
+
+另外还有别的按钮类型，它们都是继承自`ButtonStyleButton`，参数也都是一样，连用法都是一模一样，区别就是样式不同。而样式都是通过`style`属性控制的，所以大致了解下就行，毕竟实际项目中我们肯定会自定义按钮样式的。
+
+`FilledButton`：在`ElevatedButton`的基础上去除了阴影，背景使用主题色填充。
+
+`OutlinedButton`：在`FilledButton`的基础上移除了背景，但是添加了边框。
+
+`TextButton`：在`OutlinedButton`的基础上移除了边框。
+
+另外这些按钮组件，还提供了一个带`Icon`的样式的按钮，通过它的命名构造函数`icon`来创建。
+
+```dart
+FilledButton.icon(
+  onPressed: () {
+    // onPressed
+  },
+  onLongPress: () => {  },
+  icon: Icon(Icons.add),
+  label: Text("Button")
+),
+```
+
+注意，通过`.icon`创建的按钮，参数的变化。首先多了一个`icon`参数，但不是必须的。然后就是原本按钮的`child`属性，改名为`label`属性，当然实际上类型没变。通过这种方式设置的按钮，会在文本的前面加上一个`icon`图标。
+
+除了上面的几个同系列的按钮外，还有别的类型的按钮，只是它们不是同一个子类，所以可能参数上会有一些不同。
+
+`IconButton`：将`icon`变成一个按钮。
+
+```dart
+IconButton(
+  onPressed: () {},
+  icon: Icon(Icons.add)
+)
+```
+
+而继承自`IconButton`的按钮，还有`BackButton`、`CloseButton`、`DrawerButton`等，实际上就是传入了不同的`Icon`而已。
+
+#### CheckBox
+
+```dart
+Checkbox({
+    super.key,
+    required this.value,
+    this.tristate = false,
+    required this.onChanged,
+})
+```
+
+选择框实际中我们也应用的挺多的，`CheckBox`组件就是一个选择框，主要的就是三个属性，其中两个是必选属性。
+
+`value`是一个可空的布尔值类型`bool?`，值为`false`表示未勾选，值为`true`表示已勾选，值为`null`表示部分勾选。
+
+`tristate`：是否支持三态模型，即部分勾选。默认为`false`。
+
+`onChanged`：当点击选择框时的回调。
+
+其他属性比较多，可以充分进行自定义，如设置颜色、形状、圆角、水波纹等等，我们可以基于此来设置一些属性以符合项目需求，但大部分情况下是无法符合的，通常需要我们去自定义。
+
+和它类似的还有一个`Switch`组件，即开关组件，当然大部分情况下也无法满足我们的项目样式需求，也是需要进行自定义的。
+
+#### TextField
+
+输入框也是我们用的非常多的一个组件，用于文本的输入。它的构造方法参数也是非常多的，用于控制各种行为属性，但是它并没有必选参数，下面简单看下它的常用的参数。
+
+`controller`属性的类型是`TextEditingController`，用于控制文本的编辑的，通过`controller`可以拿到输入框的文案，以及向输入框中设置文案内容。也可以拿到输入框的选中内容，选中的位置信息等。
+
+```dart
+final _controller = TextEditingController();
+
+Column(
+  children: [
+    Padding(
+      padding: EdgeInsets.all(20),
+      child: TextField(controller: _controller),
+    ),
+    FilledButton(
+      onPressed: () {
+        // 获取输入框内容和选中的内容的下标
+        String text = _controller.text;
+        int startOffset = _controller.selection.baseOffset;
+        int endOffset = _controller.selection.extentOffset;
+        // 设置输入框内容和选中内容
+        _controller.text = "new Text";
+        _controller.selection= TextSelection(baseOffset: 0, extentOffset: 2);
+      },
+      child: Text("文本框内容")),
+  ],
+),
+```
+
+`controller`除了能过设置和获取到文本外，还可以添加监听`addListener`，当输入框发生任何变化时（文本变化，光标变化等等）都会触发它的回调，非常灵活，但同时调用也会非常频繁。
+
+`decoration`参数用于控制输入框的样式，可以设置`icon`、`label`、`hint`、`border`、以及各种颜色和前缀后缀等，通常情况下我们都需要设置这个属性，以适配项目的UI需求。
+
+`textInputAction`文本输入内容，通常对应的是键盘的右下角，会显示成搜索图标或者完成等信息，对应安卓中是`imeOptions`。参数类型是`TextInputAction`枚举类，可以选择多种情况，常见的有`search`、`done`、`next`等等。
+
+`textCapitalization`参数表示文本输入模式，也是一个枚举类，针对的是键盘的行为属性。设置为`none`（默认）唤起键盘后会设置成全小写输入，设置为`characters`唤起的键盘是全大写输入，设置为`words`则是每个单词的首字母大写，设置为`sentences`是每个句子的首字母大写。当然这些只针对英文输入法，切换为中文时无效。
+
+`style`设置的输入的文本的样式，和`Text`的`style`属性一模一样。
+
+`obscureText`设置为密码模式，设为`true`后文本默认会用`.`代替，也可以通过`obscuringCharacter`将替换文本修改为别的。
+
+ 其他还有很多属性，常用的不多了，还有一个`textAlign`表示文本的对其方式，一个`onChanged`回调方法，当文本变化时会被调用。
+
+
+
 #### Row
 
 基础组件中其实也就`Text`和`Image`了，其他的组件基本上都是各种组合组件，用于对其他组件进行组合的。如`Row`就是提供了一个列，允许存放多个子组件，组件水平进行排列。
@@ -394,7 +530,33 @@ class Center extends Align {
 
 #### ListView
 
+```dart
+ListView({
+    super.key,
+    super.scrollDirection,
+    super.controller,
+    super.padding,
+    List<Widget> children = const <Widget>[],
+})
+```
 
+`ListView`也是非常常用的组件，用于构建列表，其中属性也比较多。重要的有`scrollDirection`滚动方向，可以设置为横向或者纵向。`controller`用来控制列表的滚动，可以获取到滚动的位置和偏移量，也可以主动控制列表滚动到某个位置等。然后就是`padding`，可以增加边距，当然不设置的话也可以用`Padding`组将将其包裹一下来实现相同的效果。最后就是`children`属性，列表的每一项，当`item`个数超过组件高度后，列表可以进行滚动。
 
+当然实际上并不会直接通过`ListView`的这种方式去创建列表，因为一般情况下列表的条目都不是固定的，基本上都是根据请求的数据来进行动态构建，这就需要用到`ListView.builder`来动态创建。参数基本上是一样的，只是多了一个必选参数，`itemBuilder`参数，这个参数是一个函数类型参数，用于构建每一个`item`。
 
+```dart
+ListView.builder(
+  itemCount: 100,
+  itemBuilder: (_, index) => Padding(
+    padding: EdgeInsets.all(10),
+    child: Text("hello $index"),
+  ),
+),
+```
+
+需要提供两个参数，一个是`itemCount`表示需要生成多少个条目，一个是`itemBuilder`用来实际进行构建条目。
+
+### 总结
+
+实际上`Flutter`中的默认`Widget`远不止这些，但是用法大同小异，通过参数名基本上就能猜个差不多，而且方法的注释也是非常多的，直接点击进入源码查看相应的方法注释也可以理解这些组件。
 
