@@ -556,6 +556,32 @@ ListView.builder(
 
 需要提供两个参数，一个是`itemCount`表示需要生成多少个条目，一个是`itemBuilder`用来实际进行构建条目。
 
+#### PageView
+
+`PageView`是多界面的组件，类似于安卓中的`ViewPager`，用的地方也是挺多的。例如`banner`布局通常会用到这个组件，首页也会用这个组件做多个`tab`的分界面。
+
+```dart
+PageView({
+    super.key,
+    this.scrollDirection = Axis.horizontal,
+    this.controller,
+    this.physics,
+    this.pageSnapping = true,
+    this.onPageChanged,
+    List<Widget> children = const <Widget>[],
+})
+```
+
+属性比较多，首先是`scrollDirection`滚动方向，默认是横向滚动的，可以设置为纵向滚动，可以做成类似于抖音的视频滑动那样。
+
+`controller`控制器，控制组件的页面切换，可以通过控制器切换到下一页、上一页或者指定页等。
+
+`physics`物理引擎，控制组件的滑动情况，可以设置为正常滑动、回弹滑动、不允许滑动等。
+
+`pageSnapping`是否自动归位，当滑动距离小于一半的时候，界面会自动划回来，超过一半的时候会自动划到下一页，默认为`true`。
+
+`onPageChanged`界面切换时的回调，`children`子布局的集合。
+
 ### 总结
 
 实际上`Flutter`中的默认`Widget`远不止这些，但是用法大同小异，通过参数名基本上就能猜个差不多，而且方法的注释也是非常多的，直接点击进入源码查看相应的方法注释也可以理解这些组件。
