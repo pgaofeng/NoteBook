@@ -4,7 +4,7 @@ date: 2024-04-17 22:03:47
 categories: Flutter
 tags:
  - Flutter
-banner_img: img/cover/cover-flutter-1.webp
+banner_img: img/cover/cover-flutter-widget.webp
 ---
 
 `Flutter`是一套跨平台方案，使用`Dart`语言设计，作为移动开发者的我们基本上是必须要掌握这些技能的。既然是一套`UI`框架，那么我们在学习时也是需要从它内置的一些基础组件开始学习。只有先掌握了基础组件，才能在后续中把握更加复杂的页面布局和自定义布局。

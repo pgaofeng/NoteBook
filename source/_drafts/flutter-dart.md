@@ -4,7 +4,7 @@ date: 2024-05-02 16:47:29
 categories: Flutter
 tags:
  - Flutter
-banner_img: img/cover/cover-flutter-2.webp
+banner_img: img/cover/cover-flutter-dart.webp
 ---
 
 `Flutter`是一套跨平台方案，使用`Dart`语言设计。当已经掌握了一门开发语言之后，再去学习别的语言就是非常快的，因为基础语法基本上所有的语言都是一样的，因此只需要进行对比一下差异点就行。
