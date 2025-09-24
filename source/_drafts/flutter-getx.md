@@ -4,6 +4,7 @@ date: 2024-07-23 19:42:04
 categories: Flutter
 tags:
  - Flutter
+ - GetX
 banner_img: img/cover/cover-flutter-getx.webp
 ---
 
@@ -190,9 +191,11 @@ class HomeController extends GetxController {
 
 ## 依赖管理
 
-依赖管理也是`GetX`非常重要的一部分，它与状态管理和路由管理都息息相关。注意是依赖管理而不是依赖注入，侧重的是管理。它能够帮助我们管理对象的存储、构建、查找等，并且能够根据生命周期自动删除对象。
+依赖管理也是`GetX`非常重要的一部分，它与状态管理和路由管理都息息相关。它能够帮助我们管理对象的存储、构建、查找等，并且能够根据界面的生命周期自动删除对象。
 
-简单一点理解，可以把它当做是一个独立的存储空间，我们可以将各种对象保存在这个存储空间中，然后在任何使用的地方再从这个存储空间查找到对象。并且，这个存储空间能够感知界面路由的变化，例如我们在`PageA`存储了一个对象，那么当`PageA`被移除出路由栈时，这个对象也会自动地从存储空间中移除。
+如果以前没接触过依赖注入，可能理解起来比较麻烦。这里简化一下描述，可以把它当做是一个独立的存储空间，我们可以往里面存对象，或者存用于构建对象的`builder`，这样，当我们要使用这个对象时，就能直接从存储空间读取或者来生成对象。
+
+注意，这个存储空间是非常智能的，它能够感知界面路由的变化，例如我们从`PageA`存储了一个对象，那么当`PageA`被移除出路由栈时，这个对象也会自动地从存储空间中移除。
 
 这对于我们的`Controller`管理是非常合适的，我们甚至可以通过这种特性来实现状态的共享，数据的共享。例如我在`PageA`中将`ControllerA`存储起来，然后跳转`PageB`后，就可以在`PageB`中查找到`ControllerA`从而拿到状态和数据。
 
@@ -203,16 +206,16 @@ class HomeController extends GetxController {
 #### put
 
 ```dart
-  S put<S>(S dependency,
-          {String? tag,
-          bool permanent = false,
-          InstanceBuilderCallback<S>? builder}) =>
-      GetInstance().put<S>(dependency, tag: tag, permanent: permanent)
+S put<S>(S dependency,
+      {String? tag,
+      bool permanent = false,
+      InstanceBuilderCallback<S>? builder}) =>
+  GetInstance().put<S>(dependency, tag: tag, permanent: permanent)
 ```
 
 参数比较简单，必选参数只有一个`dependency`，还是泛型类型，也就是说我们可以存储任何类型的对象。
 
-其中可选参数`tag`是对象存储的标志，通过该标志存储对象并且在后续查找对象，默认是`null`，当我们不设置`tag`的时候，储存的对象的`key`会使用类名，如果设置了则使用类名+`tag`。这对于我们想要存储多个对象时非常有用，例如在`PageA`中已经存储了一个`MyGetxController`，然后跳转到`PageB`时想要一个新的`MyGetxController`，则必须设置`tag`来将其进行区分，否则我们拿到的仍是`PageA`设置的那个对象。
+其中可选参数`tag`是对象存储的标志，通过该标志存储对象并且在后续查找对象，默认是`null`。当我们不设置`tag`的时候，储存的对象的`key`会使用类名，如果设置了则使用类名+`tag`。这对于我们想要存储多个对象时非常有用，例如在`PageA`中已经存储了一个`MyGetxController`，然后跳转到`PageB`时想要一个新的`MyGetxController`，则必须设置`tag`来将其进行区分，否则我们拿到的仍是`PageA`设置的那个对象。
 
 参数`permanent`表示的是否永久存储该对象，默认为`false`表示不会永久存储，而是会自动的进行销毁，当没有地方使用该对象时，会自动将其删除。
 
@@ -232,7 +235,7 @@ class HomePage extends StatelessWidget {
 }
 ```
 
-使用直接通过`Get.put`来调用即可，返回值即是第一个参数`dependency`，也就是我们设置的那个对象。
+使用直接通过`Get.put`来调用即可，返回值即是第一个参数`dependency`，也就是我们设置的那个对象。（这里的注入都是在界面中注入的，实际应该在`Binding`中注入，在界面中获取。）
 
 #### putAsync
 
@@ -611,7 +614,438 @@ class HomePage extends GetWidget<HomeController> {
 
 ## 路由管理
 
+`GetX`的路由管理实际上与默认的路由管理`Navigator`区别不大，基本上也都是那些常用的方法，也是区分为匿名路由和有名路由。
 
+想要使用路由管理，则必须将`MaterialApp`改为`GetMaterialApp`，后者的参数基本上是全部包含了前者的参数的，因此可以无缝进行修改。
+
+### 匿名路由
+
+匿名路由是没有名字的，因此也不需要注册路由表，如果涉及到跳转等操作，直接传入一个具体的路由界面即可。在`GetMaterialApp`中也是一样，直接通过指定`home`属性来确定第一个界面。
+
+```dart
+GetMaterialApp(
+   ..
+   home: HomePage(),
+)
+```
+
+当然，实际中匿名路由用的是很少的，甚至是基本上不会去使用的，最主要的原因就是匿名路由的可管理性非常差。
+
+#### to
+
+`Get`的路由管理最大的特点就是隐藏了`BuildContext`，默认的`Navigator`需要传入`context`才能进行跳转，这也就限制了跳转界面必须要在`Widget`中，而`Get`则没有这些限制，不需要`context`意味着我们可以在任意地方进行跳转，非常灵活。当然，考虑到界面与逻辑的解耦，我们大部分情况下还是应该在`Widget`中进行跳转。
+
+```dart
+Future<T?>? to<T>(
+    dynamic page, {
+    dynamic arguments,
+    Bindings? binding,
+    bool preventDuplicates = true,
+})
+```
+
+匿名路由通过`Get.to`进行跳转，该方法参数较多，这里只记录几个常用的参数。首先是必选参数`page`，注意这里的参数类型是`dynamic`，虽然没有限制具体的类型，但是在后面却有判断的，该参数支持两种类型，`Widget`类型和`GetPageBuilder`类型，推荐使用的是`GetPageBuilder`类型，为了方便对`controller`的依赖管理。
+
+然后`arguments`是传递给下一个界面的参数，`binding`是用于依赖注入的这个前面说过了。
+
+最后就是`preventDuplicates`，可以避免重复创建界面，默认为`true`。即当你处于`PageA`时，再去跳转到`PageA`并不会重新创建一个新的路由压入到路由栈中，类似安卓中的`singleTop`。
+
+```dart
+// 不推荐，推荐使用GetPageBuilder的方式
+Get.to(SearchPage());
+// 推荐
+Get.to(()=>SearchPage());
+// 传递参数
+Get.to(()=>SearchPage(), arguments: '我可以是任意类型参数');
+// 依赖注入
+Get.to(()=>SearchPage(), binging: SearchBinding());
+```
+
+#### off
+
+通过`Get.off`也可以跳转到一个新的界面，它和`to`的参数基本上是一样的，区别就是通过`off`启动新界面时会移除当前界面。例如当前从界面`PageA`通过`Get.to`跳转到`PageB`，然后再从`PageB`通过`Get.off`跳转到界面`PageC`，此时路由栈中是只有`PageA`和`PageC`的。
+
+```dart
+Get.off(()=>SearchPage());
+```
+
+#### offAll
+
+和`off`一样，只是它会删除路由栈内所有的路由，然后在跳转到新的界面。此时，当你在新界面中返回时，由于路由栈内没有界面了，会直接退出`app`。
+
+```
+Get.offAll(()=>SearchPage());
+```
+
+#### arguments
+
+在新界面中，可以直接通过`Get.arguments`拿到前一个界面传递的参数，这个参数就是在跳转时传入的`arguments`参数，类型也是`dynamic`的，因此可以传入任何数据。
+
+```dart
+class SearchPage extends StatelessWidget {
+  SearchPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        color: Colors.green,
+        child: Center(
+          child: ElevatedButton(
+            onPressed: () {
+              // 直接获取参数即可
+              print('params=${Get.arguments}');
+            },
+            child: Text("打印参数"),
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+### 实名路由
+
+和`Navigator`一样，实名路由也是需要在`GetMaterialApp`中进行注册路由表的，注意在`Get`中，路由的类型实际上是一个`GetPageRoute`，在前面的匿名路由中虽然我们传入的是一个`Widget`，但最终仍是被封装成`GetPageRoute`的。
+
+```dart
+GetMaterialApp(
+  ...
+  // 如果在路由表中有名称为'/'的路由，可以省略这个初始值
+  initialRoute: MyRouteConfig.home,
+  // 路由表不用routes参数，而是getPages参数
+  getPages: [
+    GetPage(
+       name: MyRouteConfig.home,
+       page: () => HomePage(),
+    ),
+    GetPage(
+       name: MyRouteConfig.me,
+       page: () => MePage(),
+    ),
+  ],
+);
+```
+
+在默认的`MaterialApp`中路由表是在参数`routes`中注册的，它是一个`Map`集合，通过`key`和`value`将名称与界面进行绑定。而在`GetMaterialApp`中，路由表的注册是在`getPages`中进行注册的，它是一个类型为`GetPage`的`List`集合。
+
+我们通过`GetPage`去构建对应的界面， 它必须的参数就是名称和界面树。此外，前面说的`Binding`也是可以直接声明在`GetPage`中的。
+
+**注意：路由名称必须以 / 开头**
+
+#### toNamed
+
+```dart
+Future<T?>? toNamed<T>(
+    String page, {
+    dynamic arguments,
+    int? id,
+    bool preventDuplicates = true,
+    Map<String, String>? parameters,
+})
+```
+
+跳转方法实际上和匿名路由的名称一样，只是加了个后缀为`Named`，表示是实名路由。`page`表示的是路由的名称，直接传字符串就行，注意需要和`GetPage`中注册的保持一致。注意这里多了一个参数`parameters`，也是用于传递参数的。
+```dart
+Get.toNamed(
+    MyRouteConfig.me,
+    arguments: 'hello',
+    parameters: {
+        'name': '张三',
+        'age' : '20'
+    }
+);
+```
+
+对于命名路由，除了传统的`arguments`可以传递参数外，还可以通过一个`Map`集合`parameters`来传递数据，该参数只能接受类型为`String`的参数。
+
+```dart
+print('params=${Get.arguments}， params=${Get.parameters}');
+```
+
+在目标界面中可以通过`Get.parameters`来获取到该集合参数。实际上，这个参数一般不会直接来使用，而是类似`web`跳转那样携带参数的。例如某目标界面路由地址为：`/me`，那么跳转时传递路由地址可以使用`/me?name=张三&age=20`效果是一样的。
+
+```dart
+Get.toNamed(
+    MyRouteConfig.me,
+    arguments: 'hello',
+    parameters: {
+        'name': '张三',
+        'age' : '20'
+    }
+);
+
+Get.toNamed(
+    '${MyRouteConfig.me}?name=张三&age=20',
+    arguments: 'hello',
+);
+```
+
+以上两种方式的跳转是一样的，在目标界面都能通过`Get.parameters`获取到携带的数据。注意的是第一种方式直接在方法中通过`parameters`参数，在进行跳转时实际会将路由与参数进行拼接，最终变成第二种跳转方式，所以：**在路由地址中添加参数和设置parameters添加参数不能同时存在**。
+
+除了在路由地址后通过`?`添加参数外，`Get`还支持在路由地址中使用占位符来传递参数：
+
+```dart
+GetMaterialApp(
+  getPages: [
+    GetPage(name: MyRouteConfig.home, page: () => HomePage()),
+    // 通过冒号添加地址占位符
+    GetPage(name: '/me/:uid', page: () => MePage()),
+    GetPage(name: MyRouteConfig.search, page: () => SearchPage()),
+  ],
+);
+```
+
+在定义路由表时，就在界面的路由地址中通过占位符传递参数。
+
+```dart
+Get.toNamed(
+  '/me/100',
+  arguments: 'hello', 
+);
+```
+
+在路由表中定义的是`/me/:uid`，而在实际跳转时需要将占位符替换成具体的数据，因此这里的跳转地址为`/me/100`。在目标界面获取参数的方式仍是`Get.parameters`拿到参数`Map`，然后通过`Get.parameters['uid']`即可获取到数据。
+
+这种方式和直接后缀加参数的方式是可以共存的，如跳转地址为：`/me/100?name=张三`，此时通过`Get.parameters`不仅能拿到`uid`，也能拿到`name`参数。
+
+#### offNamed
+
+`offNamed`和`toNamed`一样，也是跳转一个新的路由界面中。区别就是会删除掉当前路由栈顶的界面，然后才跳转到新界面，类似于替换。
+
+#### offAllNamed
+
+删除当前路由栈中所有的路由界面，然后再跳转到新的界面。
+
+### 回退路由
+
+不论是匿名路由还是实名路由，跳转的返回值都是一个`Future`类型的数据，这也是为了传递数据的。在跳转的目标界面中，如果想返回到上一个界面并且传递给上一个界面参数，就可以使用`back`方法。
+
+```dart
+void back<T>({
+    T? result,
+    bool closeOverlays = false,
+    bool canPop = true,
+    int? id,
+})
+```
+
+其中第一个参数就是要传递给前一个界面的数据。
+
+```dart
+// pageB
+ElevatedButton(
+  onPressed: () {
+    Get.back('给上一页的参数');
+  },
+  child: Text("返回上一页"),
+),
+```
+
+例如在pageB中，点击按钮会销毁当前界面，然后返回到上一个界面中去，同时给上一个界面传了一个参数。
+
+```dart
+// pageA
+var params = await Get.toNamed(
+    '/me/100?age=10',
+    arguments: 'hello',
+);
+```
+
+在`pageA`跳转的地方通过`await`等待参数。
+
+### Middleware
+
+`Middleware`是路由界面的中间件，可以拿到路由界面跳转过程中的各种回调，从而控制路由的跳转。
+
+```dart
+class GetMiddleware implements _RouteMiddleware {
+  @override
+  int? priority = 0;
+
+  GetMiddleware({this.priority});
+
+  @override
+  RouteSettings? redirect(String? route) => null;
+
+  @override
+  GetPage? onPageCalled(GetPage? page) => page;
+
+  @override
+  List<Bindings>? onBindingsStart(List<Bindings>? bindings) => bindings;
+
+  @override
+  GetPageBuilder? onPageBuildStart(GetPageBuilder? page) => page;
+
+  @override
+  Widget onPageBuilt(Widget page) => page;
+
+  @override
+  void onPageDispose() {}
+
+  @override
+  Future<GetNavConfig?> redirectDelegate(GetNavConfig route) =>
+      SynchronousFuture(route);
+}
+```
+
+实际中我们需要自定义这些中间件，然后继承自`GetMiddleware`，然后重写合适的属性或方法，在这些方法中做一些处理。下面看看这些属性和方法的含义：
+
+#### priority
+
+优先级属性，每个路由界面是可以添加多个中间件的，执行过程则是按照`priority`进行排序执行的。该属性值越小，代表的优先级越高，越早被调用执行。
+
+#### redirect
+
+界面跳转，它是中间件中最早执行的方法，当我们跳转路由时`Get.to('/about')`，路由控制会去查找对应于`/about`的路由，这个方法就是在这个过程中执行的。因此我们可以通过重写这个方法，来控制跳转的界面。
+
+```dart
+class LoginMiddleWare extends GetMiddleware {
+
+  @override
+  RouteSettings? redirect(String? route) {
+    // 界面对应的binding还没执行，因此UserData必须是在initialBinding中注入的
+    var userData = Get.find<UserData>();
+    if(userData.noLogin) {
+      return RouteSettings(name: '/login');
+    }
+    return null;
+  }
+}
+```
+
+例如我们可以在这里做一些重定向拦截，首先获取到用户数据，判断用户是否已经登录，如果没有登录的话则跳转到登录界面。
+
+注意这个方法执行的时间是非常早的，因此不要在这里使用界面对应的`binding`注入对象，而是要使用全局的`binding`注入的对象。
+
+使用返回值来表示是否需要重定向，如果需要重定向的话，则返回一个`RouteSettings`，然后设置上对应的路由地址和参数即可，如果不需要重定向，直接返回`null`即可。
+
+#### onPageCalled
+
+界面被找到时调用，它是属于第二个被调用的方法，当找到了`GetPage`时回调，因此我们可以在这个方法中对界面路由做一些额外的操作。
+
+```dart
+class MyMiddleWare extends GetMiddleware {
+
+  @override
+  GetPage? onPageCalled(GetPage? page) {
+    // 将所有界面都改成搜索界面
+    return page?.copy(
+        page: ()=>SearchPage()
+    );
+  }
+}
+```
+
+例如在上面这个中间件中，当找到对应的路由时，将路由给重新复制了一份返回，并且将路由的界面替换成了搜索界面。对于设置了该中间件的路由，跳转后显示的都是搜索界面。
+
+该方法主要是对界面做一些定制，如标题、参数、动效等，可以通过该中间件对界面路由做统一的定制。
+
+#### onBindingsStart
+
+在界面设置的依赖`Binding`执行前被调用，通过该方法，可以手动设置一些`Binding`。
+
+```dart
+class MyMiddleWare extends GetMiddleware {
+  @override
+  List<Bindings>? onBindingsStart(List<Bindings>? bindings) {
+    var finalBindings = bindings ?? [];
+    // 如果用户未登录，则加入一个注册的binding
+    if (notLogin) {
+      finalBindings.add(RegisterBinding());
+    }
+    return finalBindings;
+  }
+}
+```
+
+该方法就是控制界面的`bindings`的，可以在`binding`执行前来确定加入某些`binding`或者删除某些`binding`。
+
+#### onPageBuildStart
+
+获取到`GetPage`的用于创建界面的`builder`，这是我们在定义`GetPage`是传入的：
+
+```dart
+getPages: [
+    GetPage(
+       name: MyRouteConfig.home,
+       page: () => HomePage(),
+    ),
+    GetPage(
+       name: MyRouteConfig.me,
+       page: () => MePage(),
+    ),
+  ],
+```
+
+在注册路由表的时候，需要传入两个必须得参数，一个是`name`，一个是`page`，其中`page`就是一个用于构建界面的`builder`，也就是这个函数`onPageBuildStart`的返回值。
+
+```dart
+class MyMiddleWare extends GetMiddleware {
+  
+  @override
+  GetPageBuilder? onPageBuildStart(GetPageBuilder? page) {
+    return page;
+  }
+}
+```
+
+这个方法其实和`onPageCalled`很像，只是粒度更加细一些。`onPageCalled`着重的是对整个`GetPage`的属性做一些定制，而`onPageBuildStart`则是针对如何构建界面这个细节上做定制。
+
+#### onPageBuilt
+
+`onPageBuilt`的粒度更加细，它是对已经生成的界面树再去做额外的定制。
+
+```dart
+  @override
+  Widget onPageBuilt(Widget page) => page;
+```
+
+#### onPageDispose
+
+界面销毁时的回调方法。
+
+```dart
+@override
+void onPageDispose() {}
+```
+
+中间件一共有6个函数回调，它们的顺序从前往后如下：
+
+1. `redirect`： 可以控制跳转到其他命名的路由中
+2. `onPageCalled`：可以控制已经找到的目标路由的属性定制
+3. `onBindingsStart`：可以手动添加或删除依赖注入的`bindings`
+4. `onPageBuildStart`：可以控制用于生成界面布局的`builder`
+5. `onPageBuilt`：可以定制已经生成的`Widget`树
+6. `onPageDispose`：界面销毁时调用
+
+当定义完中间件后，需要将其添加到对应的路由中，这样当其他界面需要跳转这个路由时，就会调用这些中间件了。
+
+```dart
+getPages: [
+  GetPage(
+    name: MyRouteConfig.me,
+    page: () => MePage(),
+    middlewares: [
+      LoginMiddleWare(),
+      OtherMiddleWare()
+    ]
+  ),
+],
+```
+
+## 总结
+
+`GetX`是一个非常全面的`Flutter`框架，它包含很多内容，我们常用的就是状态管理、依赖管理、路由管理这三个模块，这也是最核心的三个模块。
+
+除此之外，还有很多其他功能。如多语言适配，它的多语言是需要创建一个单独的类继承自`Translations`，然后在其中的`keys`属性中定义我们需要的各种语言，然后在通过`Get.updateLocale`来设置语言。
+
+但是有一些缺点，就是所有的字串都是定义在一个`Map`中，当需要适配的国家较多并且项目较大时，会导致字串总数非常膨胀，将会大量占用内存空间，因此对于国际化的适配还是选择成熟的其他的库吧。
+
+`GetX`也支持更换主题，其实主题的更换无非就是定义各种不同的`ThemeData`然后进行替换，`GetX`也是支持这些的，可以通过`Get.changeTheme`来实现主题的替换。
+
+同时它内置的也有网络请求`GetConnect`模块，可以快速方便的实现网络请求，当然性能上而言还是比`Dio`稍差一些的。并且，在`Flutter`中，基本上所有的项目都是用的`Dio`，就像`Android`中大家都用`OkHttp`一样，因此还是跟随主流使用`Dio`比较合适。
 
 
 
