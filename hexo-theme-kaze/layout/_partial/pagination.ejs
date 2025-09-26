@@ -89,7 +89,7 @@
 <%  }%>
 <%  if(page.current < page.total -1) {%>
         <a 
-          href="<%=url_for(replaceLastPartOfPath(page.current_url, page.total))%>" 
+          href="<%=url_for(replaceLastPartOfPath(next_link, page.total))%>" 
           class="nav-link nav-item-normal">
           <div>
             <div class="nav-label"><%=page.total%></div>
